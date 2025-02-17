@@ -139,5 +139,6 @@ service:
 - **Choose the right approach** (OTel Log API vs. existing log framework integration).
 - **Optimize log levels** (INFO, ERROR, DEBUG) to reduce noise.
 - **Export logs via OpenTelemetry Collector** for centralized observability.
+- **Enrich logs with resource attributes** to improve queryability in monitoring backends.
 
 By implementing **structured logging with OpenTelemetry**, teams can **enhance observability**, improve debugging efficiency, and maintain **seamless correlation between logs, traces, and metrics**.

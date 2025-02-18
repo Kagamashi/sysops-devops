@@ -11,24 +11,7 @@ Cloudflare Tunnel (previously Argo Tunnel) allows secure access to internal appl
 
 ---
 
-## **2. Installing and Configuring Cloudflared**
-Cloudflared is the lightweight daemon that establishes secure tunnels between Cloudflare and your internal applications.
-
-### **Installation (Linux/Mac/Windows)**
-#### **Linux:**
-```sh
-curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
-chmod +x cloudflared
-sudo mv cloudflared /usr/local/bin/
-```
-#### **Windows (via Chocolatey):**
-```sh
-choco install cloudflared
-```
-
----
-
-## **3. Setting Up a Secure Tunnel**
+## **Setting Up a Secure Tunnel**
 
 ### **Step 1: Authenticate Cloudflared with Cloudflare**
 ```sh
@@ -54,7 +37,7 @@ ingress:
   - service: http_status:404
 ```
 
-### **Step 4: Route Traffic via Cloudflare DNS**
+### **Route Traffic via Cloudflare DNS**
 1. In Cloudflare Dashboard, go to **DNS → Create a CNAME Record**.
 2. Point `internal-app.example.com` to `my-secure-tunnel`.
 
@@ -65,7 +48,7 @@ cloudflared tunnel run my-secure-tunnel
 
 ---
 
-## **4. Securing SSH and RDP with Cloudflare Tunnel**
+## **Securing SSH and RDP with Cloudflare Tunnel**
 
 ### **Secure SSH Access Using Cloudflare Tunnel**
 Modify the `config.yml` to enable SSH tunneling:
@@ -101,7 +84,7 @@ mstsc /v:rdp.example.com
 
 ---
 
-## **5. Integrating Cloudflare Access for Authentication**
+## **Integrating Cloudflare Access for Authentication**
 Cloudflare Access enforces identity verification before allowing users to access protected services.
 
 ### **Step 1: Create an Access Policy**
@@ -133,19 +116,7 @@ For RDP:
 
 ---
 
-## **6. Troubleshooting Common Issues**
-
-| Issue | Solution |
-|--------|---------|
-| **Tunnel fails to start** | Ensure Cloudflared is authenticated (`cloudflared tunnel login`). |
-| **DNS not resolving** | Verify DNS CNAME record in Cloudflare is correctly set to the tunnel. |
-| **Access denied** | Check Cloudflare Access policies and ensure proper user authentication. |
-| **SSH or RDP connection times out** | Ensure firewall rules allow outbound Cloudflare connections (port 7844). |
-| **Cloudflared crashing** | Check logs (`cloudflared tunnel run --loglevel debug`). |
-
----
-
-## **7. Best Practices for Cloudflare Tunnel with Azure**
+## **Best Practices for Cloudflare Tunnel with Azure**
 - **Use Cloudflare Tunnel instead of public-facing IPs** for enhanced security.
 - **Integrate with Azure AD** for seamless authentication to internal applications.
 - **Restrict access via Cloudflare Access policies** to minimize unauthorized users.
@@ -153,4 +124,3 @@ For RDP:
 - **Use multiple tunnels for redundancy** to avoid single points of failure.
 
 By leveraging Cloudflare Tunnel and Access, organizations can securely expose internal applications, protect SSH/RDP access, and enforce identity-based authentication without relying on traditional VPNs.
-

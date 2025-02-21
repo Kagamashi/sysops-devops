@@ -1,0 +1,19 @@
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: cloudflare-tunnel
+spec:
+  hosts:
+  - region1.v2.argotunnel.com
+  - region2.v2.argotunnel.com
+  - cftunnel.com
+  - h2.cftunnel.com
+  - quic.cftunnel.com
+  exportTo:
+  - "."
+  location: MESH_EXTERNAL
+  ports:
+  - number: 7844
+    name: https
+    protocol: TLS
+  resolution: NONE  # IMPORTANT!

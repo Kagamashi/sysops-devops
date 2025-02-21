@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - args:
+        - 'tunnel'
+        - 'run'
+        #- '--no-autoupdate'  # already in Dockerfile entrypoint
+        - '--protocol'
+        - 'http2'
+        env:
+        - name: TUNNEL_LOGLEVEL
+          value: warn
+        - name: TUNNEL_METRICS
+          value: 0.0.0.0:3333
+        envFrom:
+        - secretRef:
+            name: cloudflare-token
+        image: cloudflared
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: 3333
+        name: service
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 3333
+        resources:
+          limits:
+            cpu: 750m
+            memory: 125Mi
+          requests:
+            cpu: 10m
+            memory: 75Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          runAsNonRoot: true
+          runAsUser: 65532
+        volumeMounts:
+        - mountPath: /var/run/token
+          name: token
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        sysctls:
+          # agent is using ping, but seems to also work without it
+          - name: net.ipv4.ping_group_range
+            value: "65532 65532"
+      serviceAccountName: cloudflared
+      volumes:
+      - csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: cloudflare-token
+        name: token

@@ -1,0 +1,50 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: ${}:4317
+      http:
+        endpoint: ${}:4318
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1000
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 400
+  resource:
+    attributes:
+    - key: "system.name"
+      value: "TEST"
+      action: upsert
+  k8sattributes:
+  auth_type: serviceAccount
+  passthrough: false
+  extract:
+    metadata:
+      - k8s.pod.name
+      - k8s.namespace.name
+      - k8s.node.name
+      - k8s.pod.uid
+      - k8s.daemonset.name
+      - k8s.statefulset.name
+      - k8s.cronjob.name
+      - k8s.job.name
+      - k8s.deployment.name
+
+exporters:
+  debug:
+    verbosity: detailed
+  logging:
+  otlp:
+    endpoint: "http://observability-backend:4317"
+    headers:
+      Authorization: ${API_KEY}
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch, memory_limiter]
+      exporters: [otlp, logging]

@@ -37,3 +37,12 @@ data:
           processors: [memory_limiter, batch]
           exporters: [otlp]
 ---
+## kustomize.yaml setup
+# configMapGenerator:
+# - name: otel-collector
+#   options:
+#     labels:
+#       app:  otel-collector
+#   behavior: create
+#   files:
+#   - config.yaml=./configs/otel-collector-config.yaml

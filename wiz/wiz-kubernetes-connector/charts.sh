@@ -1,0 +1,1 @@
+- https://github.com/wiz-sec/charts/tree/master

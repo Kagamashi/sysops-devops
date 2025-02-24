@@ -1,0 +1,14 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-collector-access-from-any
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: otel-collector
+  policyTypes:
+  - Ingress
+  ingress:
+  - ports:
+    - port: 4317  # grpc port (has to be container port)
+    - port: 4318  # http port (has to be container port)

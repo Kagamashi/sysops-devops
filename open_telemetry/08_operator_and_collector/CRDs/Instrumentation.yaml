@@ -1,41 +1,8 @@
-# .NET example
+
 # .NET: instrumentation.opentelemetry.io/inject-dotnet: "true"
-apiVersion: opentelemetry.io/v1alpha1
-kind: Instrumentation
-metadata:
-  name: demo-instrumentation
-spec:
-  exporter:
-    endpoint: http://demo-collector:4318
-  propagators:
-    - tracecontext
-    - baggage
-  sampler:
-    type: parentbased_traceidratio
-    argument: "1"
-
----
-
-# GO
 # Go: instrumentation.opentelemetry.io/inject-go: "true"
-apiVersion: opentelemetry.io/v1alpha1
-kind: Instrumentation
-metadata:
-  name: demo-instrumentation
-spec:
-  exporter:
-    endpoint: http://demo-collector:4318
-  propagators:
-    - tracecontext
-    - baggage
-  sampler:
-    type: parentbased_traceidratio
-    argument: "1"
-
---- 
-
-# Java
 # Java: instrumentation.opentelemetry.io/inject-java: "true"
+
 apiVersion: opentelemetry.io/v1alpha1
 kind: Instrumentation
 metadata:

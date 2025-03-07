@@ -1,7 +1,13 @@
 
-## Inventory Plugins and Dynamic Sources
+## Plugins
 
 Instead of manually listing hosts, **inventory plugins** can fetch hosts dynamically from cloud providers.
+
+- Inventory Management: aws_ec2, azure_rm
+- Connections: ssh, winrm
+- Lookups: lookup, env
+- Filters: to_json, regex_replace
+- Strategy plugins: linear, free, debug
 
 ### **Using a Dynamic Inventory (AWS Example)**
 1. Install AWS inventory plugin:

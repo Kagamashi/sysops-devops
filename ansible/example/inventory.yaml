@@ -1,9 +1,0 @@
-all:
-  hosts:
-    web1.example.com:
-      ansible_host: 192.168.1.10
-  children:
-    databases:
-      hosts:
-        db1.example.com:
-          ansible_user: postgres

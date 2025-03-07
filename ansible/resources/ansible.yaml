@@ -1,0 +1,77 @@
+## PLAYBOOK 
+# Playbooks define the sequence of tasks that Ansible executes
+# - orchestrate multiuple tasks to automate system configuration
+
+- name: Rolling Deploy
+  hosts: webservers
+  serial: 2  # limit number of hosts executed at once
+  ## TASK
+  # defines specific actions in playbooks 
+  # - each task calls a module to perform an operations
+  tasks:
+    - name: Copy a configuration file
+      ## MODULE
+      # modules are building blocks of Ansible, they handle operations like:
+      # - managing files, users, packages and services
+      # - working with cloud resources: AWS, Azure, GCP
+      # - configuring network devices
+      # - running commands remotely
+      copy:
+        src: nginx.conf
+        dest: /etc/nginx/nginx.conf
+      tags: nginx ## TAGS
+
+    - name: Restart Web Server
+      service:
+        name: nginx
+        state: restarted
+      ## ROLES
+      # organize playbooks by breaking them into reusable components: tasks, handlers, templates..
+      roles:
+        - webserver
+
+    - name: Start a container
+      ## COLLECTIONS
+      # bundle roles, modules, plugins into reusable packages - they expand Ansible capabilities beyond built-in modules
+      community.docker.docker_container:
+        name: my_container
+        image: nginx
+
+
+    - name: Restart Nginx # this task is called by below handler
+      service:
+        name: nginx
+        state: restarted
+
+    - name: Update Nginx Configuration
+      copy:
+        src: nginx.conf
+        dest: /etc/nginx/nginx.conf
+      ## HANDLERS
+      # respond to changes in the system - they execute only when notified
+      notify: Restart Nginx
+
+
+    - name: Deploy Nginx Configuration
+      ## TEMPLATES
+      # use Jinja2 syntax to generate dynamic files
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+
+      ## VARS overwrite jinja2 config
+      vars:
+        http_port: 80
+        server_name: example.com
+
+    - name: Show OS Info
+      debug:
+        ## ANSIBLE FACTS provide system information dynamically
+        msg: "OS: {{ ansible_distribution }}"
+
+
+    - name: Show Uppercase Message
+      debug:
+        ## FILTERS
+        # modify data inside playbooks - they format and manipulate text
+        msg: "{{ 'hello ansible' | upper }}"

@@ -1,0 +1,28 @@
+
+## Conditionals & Loops
+# when - run a task only if a condition is met
+- name: Restart Nginx if Ubuntu
+  ansible.builtin.import_playbook: play.yaml
+  service:
+    name: nginx
+    state: restarted
+  when: ansible_distribution == "Ubuntu"
+
+# loop - iterate over a list of values
+- name: Add several users
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    state: present
+    groups: "{{ item.groups }}"
+  loop:
+    - { name: 'testuser1', groups: 'wheel' }
+    - { name: 'testuser2', groups: 'root' }
+
+# until - retry a task until certain condition is met
+# this example runs up to 5 times with a delay of 10s between each attempt - if result of any attempt is "all systems go" the task succeeds
+- name: Retry a task until a certain condition is met
+  ansible.builtin.shell: /usr/bin/foo
+  register: result
+  until: result.stdout.find("all systems go") != -1
+  retries: 5
+  delay: 10

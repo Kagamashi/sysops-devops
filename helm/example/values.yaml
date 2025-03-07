@@ -1,0 +1,35 @@
+replicaCount: 2
+image:
+  repository: nginx
+  tag: latest
+  pullPolicy: IfNotPresent
+ingress:
+  enabled: true
+  host: myapp.local
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+
+redis:
+  enabled: true
+  # (optional) override Redis subchart values:
+  replicaCount: 1
+  persistence:
+    enabled: true
+  # ... (other Redis values overrides as needed)
+
+postgresql:
+  enabled: true
+  # (optional) override PostgreSQL subchart values:
+  replicaCount: 1
+  auth:
+    username: admin
+    password: StrongPassword123
+    database: myappdb
+  persistence:
+    size: 20Gi
+  # ... (other overrides)

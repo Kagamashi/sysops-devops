@@ -1,0 +1,10 @@
+replicaCount: 5
+ingress:
+  host: myapp.local
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1024Mi"

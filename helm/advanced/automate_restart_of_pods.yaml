@@ -1,0 +1,28 @@
+# sha256sum function
+# as soon as configmap.yaml will change (sha256sum changes) the Deployment will restart
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fmt-app.fullname" . }}
+  labels:
+    {{- include "fmt-app.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "fmt-app.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+        #checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "fmt-app.selectorLabels" . | nindent 8 }}
+
+---

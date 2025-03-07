@@ -1,0 +1,31 @@
+# charts/postgresql/values.yaml
+replicaCount: 1  # 1 for a single primary. Increase for primary + replicas.
+image:
+  repository: postgres
+  tag: "14"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 5432
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: ""
+  accessMode: ReadWriteOnce
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+auth:
+  username: admin
+  password: StrongPassword123
+  database: myappdb
+
+# Optionally, configure replication (if replicaCount > 1)
+replication:
+  enabled: false
+  replicaCount: 2    # number of read replicas
+  primaryAsReadOnly: false

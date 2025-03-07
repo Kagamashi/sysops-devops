@@ -1,0 +1,24 @@
+# charts/redis/values.yaml
+replicaCount: 1
+image:
+  repository: redis
+  tag: "6.2"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 6379
+
+persistence:
+  enabled: true
+  size: 4Gi
+  storageClass: ""  # Use default storage class
+  accessMode: ReadWriteOnce
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+config: |-
+  maxmemory 2mb
+  maxmemory-policy allkeys-lru

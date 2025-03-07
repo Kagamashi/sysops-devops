@@ -1,0 +1,19 @@
+# Helmfile helps manage multiple Helm releases with a single configuration file
+
+# Installation
+# brew install helmfile  # macOS
+# sudo curl -Lo /usr/local/bin/helmfile https://github.com/helmfile/helmfile/releases/latest/download/helmfile-linux-amd64 && sudo chmod +x /usr/local/bin/helmfile
+
+# Apply: 'helmfile apply'
+
+releases:
+  - name: myapp-dev
+    namespace: dev
+    chart: ./mychart
+    values:
+      - values-dev.yaml
+  - name: myapp-prod
+    namespace: prod
+    chart: ./mychart
+    values:
+      - values-prod.yaml

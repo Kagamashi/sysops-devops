@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fullname" . }}-redis
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "fullname" . }}-redis
+  template:
+    metadata:
+      labels:
+        app: {{ include "fullname" . }}-redis
+    spec:
+      containers:
+      - name: redis
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - containerPort: 6379
+          name: redis
+        volumeMounts:
+        - name: config
+          mountPath: /redis-master
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          mountPath: /data
+        {{- end }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "fullname" . }}-redis-config
+          items:
+            - key: redis.conf
+              path: redis.conf
+      {{- if .Values.persistence.enabled }}
+      - name: data
+        persistentVolumeClaim:
+          claimName: {{ include "fullname" . }}-redis
+      {{- end }}

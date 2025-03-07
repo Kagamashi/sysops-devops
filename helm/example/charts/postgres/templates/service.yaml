@@ -1,0 +1,27 @@
+# Headless service for StatefulSet DNS
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fullname" . }}-postgresql-headless
+spec:
+  clusterIP: None
+  selector:
+    app: {{ include "fullname" . }}-postgresql
+  ports:
+    - port: 5432
+      targetPort: postgres
+
+# ClusterIP service for client connections
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fullname" . }}-postgresql
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ include "fullname" . }}-postgresql
+  ports:
+    - port: 5432
+      targetPort: postgres
+      name: postgres

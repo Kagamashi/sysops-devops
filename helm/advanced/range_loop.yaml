@@ -1,0 +1,19 @@
+# range function is used to loop through environment variables or maps
+
+{{- $global := . }}
+{{- range $schedule := .Values.schedules }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob-cas-{{- $schedule.name }}
+  labels: {{ $labels | nindent 4 }}
+spec:
+... #omitted
+          restartPolicy: Never
+          {{- with $global.Values.nodeSelector }} #access global value
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+---
+{{- end }}

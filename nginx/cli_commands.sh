@@ -1,6 +1,10 @@
+# Installation
+sudo apt update
+sudo apt install nginx -y
 
-# Check Installed Version
-nginx -v
+
+nginx -v # shows version
+nginx -V # shows installed version and compiled modules
 
 # Check Running Status
 systemctl status nginx
@@ -19,3 +23,6 @@ nginx -s reopen     # reopen log files
 # Test NGINX Configuration
 nginx -t
 
+
+# monitor error logs in real time
+tail -f /var/log/nginx/error.log

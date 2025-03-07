@@ -1,0 +1,27 @@
+[submodule "kustomize"]
+	path = kustomize
+	url = git@github.com:Kagamashi/kustomize.git
+
+[submodule "istio"]
+	path = istio
+	url = git@github.com:Kagamashi/Istio.git
+
+[submodule "argocd"]
+	path = argocd
+	url = git@github.com:Kagamashi/argocd.git
+
+[submodule "kubernetes"]
+	path = kubernetes
+	url = git@github.com:Kagamashi/kubernetes.git
+
+[submodule "python"]
+	path = python
+	url = git@github.com:Kagamashi/python.git
+
+[submodule "golang"]
+	path = golang
+	url = git@github.com:Kagamashi/golang.git
+
+[submodule "linux"]
+	path = linux
+	url = git@github.com:Kagamashi/linux.git

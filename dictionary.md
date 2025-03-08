@@ -11,3 +11,6 @@ API gateway
 Caching
 
 SSL/TLS termination
+
+
+zero trust

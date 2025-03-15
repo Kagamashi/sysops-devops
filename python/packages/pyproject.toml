@@ -1,0 +1,29 @@
+# standard way to package Python applications and libraries (replaces setup.py and requirements.txt)
+# for simple scripts use requirements.txt instead
+
+[tool.poetry] # used when managing dependencies with poetry
+name = "my_project"
+version = "0.1.0"
+description = "A sample Python project"
+authors = ["Your Name <you@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+requests = "^2.28.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0"
+
+[build-system] # defines how the package should be built (setuptools, poetry)
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[project] # metadata
+name = "my_project"
+version = "0.1.0"
+description = "A simple example project"
+authors = [{ name="Your Name", email="you@example.com" }]
+dependencies = [
+    "requests>=2.25.0",
+    "numpy>=1.21"
+]

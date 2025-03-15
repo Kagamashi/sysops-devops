@@ -1,0 +1,47 @@
+# PersistentVolume
+# Piece of storage in cluster that has been provisioned by an administrator or dynamically by Kubernetes using StorageClass. 
+# Provide a way to store data outside the lifecycle of a Pod. 
+
+# - Provisioned manually by cluster admin 
+# - Provisioned dynaically using StorageClass 
+# - PVs supports various types of storage backends: NFS, iSCSI, AWS EBS, Google Cloud Persistent Disks, Azure Disks... 
+
+# Reclaim Policy: What happens when PV is released
+#   - Retain:  PV is not deleted and remains in the cluster 
+#   - Delete:  PV is deleted along with the data it contains 
+#   - Recycle: PV is wiped and made available for future use 
+
+# Access Modes: 
+#   - ReadWriteOnce (RWO): can be mounted as read-write by a single node.
+#   - ReadOnlyMany  (ROX): can be mounted as read-only by many nodes.
+#   - ReadWriteMany (RWX): can be mounted as read-write by many nodes.
+
+--- 
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  capacity:
+    storage: 10Gi       # The size of the storage
+  accessModes:
+    - ReadWriteOnce     # Access mode: volume can be mounted as read-write by a single node
+  persistentVolumeReclaimPolicy: Retain  # Policy for reclaiming the PV (Retain, Delete, or Recycle)
+  storageClassName: manual    # The StorageClass associated with the PV (if any)
+  nfs:                        # Example of an NFS-based storage backend
+    path: /mnt/data            # Path on the NFS server
+    server: 192.168.1.100      # NFS server IP address
+
+
+--- 
+
+# apiVersion and kind: The API version is v1, and the resource type is PersistentVolume.
+# metadata: Contains the name of the PersistentVolume (my-pv).
+# spec.capacity: Defines the size of the volume (e.g., 10Gi).
+# spec.accessModes: Specifies how the volume can be accessed. In this example, the access mode is ReadWriteOnce, meaning the volume can be mounted as read-write by a single node.
+# spec.persistentVolumeReclaimPolicy: Defines the behavior when the PVC is deleted. Options include Retain, Delete, and Recycle.
+# spec.storageClassName: Defines the StorageClass associated with the PV. This can be used to dynamically provision storage or to classify storage based on performance, backup policies, etc.
+# spec.nfs: This specifies the NFS backend details, such as the NFS server IP and the path to the directory.
+
+--- 

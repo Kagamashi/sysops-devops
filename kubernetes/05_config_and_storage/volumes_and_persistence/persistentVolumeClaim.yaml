@@ -1,0 +1,26 @@
+# PersistentVolumeClaim
+# Request for storage by a user.
+# PVC specifies the size and access mode required for the storage. 
+# Kubernetes then bind the PVC to suitable PV that satisfies the request. 
+
+--- 
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc             
+spec:
+  accessModes:
+    - ReadWriteOnce          # Access mode requested for the PVC
+  resources:
+    requests:
+      storage: 5Gi           # Amount of storage requested
+  storageClassName: manual   # The StorageClass for dynamic provisioning or matching with a PV
+
+--- 
+
+# apiVersion and kind: The API version is v1, and the resource type is PersistentVolumeClaim.
+# metadata: Contains the name of the PersistentVolumeClaim (my-pvc).
+# spec.accessModes: Defines how the storage will be accessed. In this case, it is ReadWriteOnce, meaning the storage can be mounted as read-write by a single node.
+# spec.resources.requests.storage: Specifies the amount of storage requested (e.g., 5Gi).
+# spec.storageClassName: Specifies the StorageClass for dynamic provisioning or to bind to a PV that has the same StorageClass.

@@ -1,0 +1,5 @@
+
+## OVERLAYS
+
+# An overlay is a directory with a kustomization.yaml that refers to other kustomization directories as its bases. 
+# A base has no knowledge of an overlay and can be used in multiple overlays.

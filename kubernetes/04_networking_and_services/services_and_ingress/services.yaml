@@ -1,0 +1,87 @@
+# Service
+# Service is an abstraction that defines a logical set of Pods and a policy by which they are accessed.
+
+# - ClusterIP:    The default and most common type. It exposes the Service on an internal IP within the cluster, and it cannot be accessed externally.
+# - NodePort:     Exposes the Service on the same static port (NodePort) on each Node's IP. The service is accessible from outside the cluster using <NodeIP>:<NodePort>.
+# - LoadBalancer: Typically used in cloud environments. It creates an external load balancer (if supported by the cloud provider) and routes traffic to the backend Pods.
+# - ExternalName: Maps the Service to an external DNS name. No proxying of traffic occurs; it just resolves the external name.
+
+# Key concepts:
+# - Selectors:    Used to map the Service to specific Pods via labels.
+# - Endpoints:    The actual IP addresses of the Pods that match the service's selector.
+# - Port Mapping: Services abstract the actual port used by Pods and expose a port for internal/external access.
+
+--- 
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+  labels:           # Optional labels for organizational purposes
+    app: my-app
+    tier: backend
+spec:
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"  # Example: Annotation to use Network Load Balancer (NLB) on AWS
+  selector:         # Labels to select which Pods this service targets
+    app: my-app
+    tier: backend
+
+  type: ClusterIP   # Service type: ClusterIP (default), NodePort, LoadBalancer, ExternalName
+
+  ports:            # List of ports exposed by the Service
+    - protocol: TCP             # Protocol used by the Service (usually TCP or UDP)
+      port: 80                  # The port that the Service will expose internally
+      targetPort: 9376          # The port on the Pod that the Service will forward traffic to
+      name: http                # Optional name for the port (useful when there are multiple ports)
+    - protocol: TCP
+      port: 443
+      targetPort: 9443          # Mapping for HTTPS traffic
+      name: https
+
+  sessionAffinity: None         # Session affinity: None (default) or "ClientIP" to route traffic based on client's IP
+  ipFamily: IPv4              # Either IPv4 (default) || IPv6. ipFamilyPolicy determines how traffic will be routed.
+  ipFamilyPolicy: SingleStack  # Can be SingleStack (default) || PreferDualStack || RequireDualStack.
+  externalIPs:   # Publish service using ExternalIPs (IPs that route to your Service)
+    - 192.168.1.10
+    - 192.168.1.11
+  clusterIP: None   # Configure headless service (used for stateful applications where you don’t need load balancing)
+
+  # External Traffic Policy: Determines how external traffic is handled for NodePort or LoadBalancer
+  externalTrafficPolicy: Cluster   # Cluster (default) or Local, controls traffic routing for external sources
+
+  # LoadBalancer-type services (mostly on cloud providers)
+  loadBalancerIP: "192.168.1.100"  # Request specific IP address for the load balancer (optional)
+  loadBalancerSourceRanges:        # Restrict access to the load balancer from specific IP ranges (optional)
+    - 192.168.0.0/16
+    - 10.0.0.0/8
+  healthCheckNodePort: 32001  # Optional. Custom health check port for external traffic (NodePort or LoadBalancer)
+
+  # NodePort-type services
+  nodePort: 30007  # Optional static port number that will be opened on all nodes. If not specified, Kubernetes will assign one.
+  topologyKeys:    # Publish service through specific ports on all nodes (for NodePort services)
+    - "kubernetes.io/hostname"
+    - "topology.kubernetes.io/zone"
+
+  # ExternalName-type service
+  externalName: example.com  # For ExternalName services, specify the DNS name here (e.g., a non-Kubernetes service).
+
+--- 
+
+# metadata: Contains metadata like the name of the service and labels for selection purposes.
+# spec.selector: Defines how the Service selects Pods. Pods with matching labels (e.g., app: my-app, tier: backend) are targeted by the Service.
+# spec.type: Defines the type of Service. The most common types are ClusterIP, NodePort, LoadBalancer, and ExternalName. The type dictates how the service will be exposed:
+#   ClusterIP (default): Exposes the service within the cluster only.
+#   NodePort: Exposes the service on a static port on each node.
+#   LoadBalancer: Exposes the service externally through a cloud provider's load balancer.
+#   ExternalName: Maps the service to a DNS name.
+# spec.ports: Defines which ports the Service exposes and how they map to the target Pods. You can define multiple ports, each with its own protocol, port number, target port, and optional name.
+# spec.sessionAffinity: Determines if requests from the same client should be routed to the same Pod. Common values are None (no affinity) or ClientIP (route based on client IP).
+# spec.externalTrafficPolicy: Determines how traffic from outside the cluster is handled for NodePort and LoadBalancer services.
+# spec.loadBalancerIP: For LoadBalancer type services, this option allows you to request a specific static IP for the service, particularly useful in cloud environments.
+# spec.nodePort: For NodePort services, this specifies the port that will be opened on all the nodes. If not provided, Kubernetes will automatically assign one.
+# spec.externalName: Used in ExternalName services to map the Service to an external DNS name.
+# spec.healthCheckNodePort: For LoadBalancer services, you can specify a custom health check port to monitor the health of your nodes.
+# spec.externalIPs: Allows services to be reachable via specific external IPs. It routes traffic to the cluster nodes without going through a cloud provider's load balancer.
+# spec.clusterIP: The internal IP address for a ClusterIP or Headless service. Set clusterIP: None to make the service headless (useful for stateful applications).
+# spec.topologyKeys: For NodePort or LoadBalancer services, this defines how traffic is distributed across nodes based on topology (e.g., hostname, zone).

@@ -1,0 +1,57 @@
+# JOB
+# a set of steps an agent executes in a queue (or pool). Jobs are atomic – they're performed wholly on a single agent. 
+
+# Key fields 
+#   displayName – a friendly name.
+#   dependsOn - a way to specify dependencies and ordering of multiple jobs.
+#   condition – a binary expression: if it evaluates to true, the job runs; if false, the job is skipped.
+#   strategy - used to control how jobs are parallelized.
+#   continueOnError - specify if the rest of the pipeline should continue if this job fails.
+#   pool – the pool name (queue) to run this job on.
+#   workspace - managing the source workspace.
+#   container - for specifying a container image to execute the job later.
+#   variables – variables scoped to this job.
+#   steps – the set of steps to execute.
+#   timeoutInMinutes and cancelTimeoutInMinutes for controlling timeouts.
+#   services - sidecar services that you can spin up.
+
+###
+
+# parallel (no dependencies)
+jobs:
+- job: Windows
+  pool:
+    vmImage: 'windows-latest'
+  steps:
+  - script: echo hello from Windows
+- job: macOS
+  pool:
+    vmImage: 'macOS-latest'
+  steps:
+  - script: echo hello from macOS
+- job: Linux
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - script: echo hello from Linux
+
+# job dependencies
+jobs:
+- job: Debug
+  steps:
+  - script: echo hello from the Debug build
+- job: Release
+  dependsOn: Debug
+  steps:
+  - script: echo hello from the Release build
+
+# timeout and strategy
+jobs:
+  - job: Test
+    timeoutInMinutes: 30
+    strategy:
+      matrix:
+        Linux:
+          vmImage: 'ubuntu-latest'
+        Windows:
+          vmImage: 'windows-latest'

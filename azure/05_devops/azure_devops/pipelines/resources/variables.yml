@@ -1,0 +1,58 @@
+# VARIABLES are used to store values that can be reused throughout the pipeline 
+# They can be defined in several ways - pipeline-level, job-level, stage-level
+# We can also use predefined variables or secret variables (sensitive informations)
+
+# Key types of variables 
+# Pipeline Variables: set at pipeline level and can be referenced throughout
+# Environment Variables: passed to scripts or tasks 
+# Secret Variables: store sesitive data (e.g. passwords) and are encrypted
+# Variable Groups: collections of variables stored in Azure Devops for reuse across pipelines 
+# System Variables: predefined by ADO (e.g. Build.SourceBranch)
+
+# Key fields 
+# name: variable name 
+# value: variable value 
+# isSecret: marks a variable as secret (for secure storage)
+
+# Variable Groups - allow to manage variables across multiple pipelines and projects 
+# variables:
+#   - group: MyVariableGroup
+
+# Predefined variables
+# Build.SourceBranch: branch that triggered the pipeline 
+# Build.BuildId: unique ID of the pipeline run 
+# Agent.OS: operating system of the agent running the job
+
+###
+
+# example defining variables
+variables:
+  - name: environment
+    value: production
+  - name: deployPath
+    value: '/var/www/app'
+
+
+# example using variables in steps
+steps:
+  - script: echo "Deploying to $(environment) environment"
+
+
+# example secret variables
+variables:
+  - name: mySecretPassword
+    value: $(mySecretPassword)
+    isSecret: true
+
+
+# dynamic variable - created and modified during pipeline execution
+# these variables can be passed from one stage to another
+jobs:
+  - job: SetVariableJob
+    steps:
+      - script: echo "##vso[task.setvariable variable=buildVersion]1.0.1"
+      
+  - job: UseVariableJob
+    dependsOn: SetVariableJob
+    steps:
+      - script: echo "Build version is $(buildVersion)"

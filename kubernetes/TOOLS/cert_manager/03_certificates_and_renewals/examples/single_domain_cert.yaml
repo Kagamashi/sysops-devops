@@ -1,0 +1,17 @@
+
+# A single-domain certificate is used for a specific FQDN (e.g., example.com).
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: example-com-cert
+  namespace: default
+spec:
+  secretName: example-com-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - example.com
+  duration: 90d  # Optional: Default is 90 days
+  renewBefore: 30d  # Optional: Renew 30 days before expiration

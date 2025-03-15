@@ -1,0 +1,115 @@
+# Kustomize looks for kustomization.yaml file to learn how to customize the resources.
+
+# RESOURCES to be managed by kustomize
+resources:
+  - deployment.yaml
+  - service.yaml
+  - https://raw.githubusercontent.com/example/repo/main/deployment.yaml
+
+
+# TRANSFORMERS to modify resources
+namePrefix: prod-
+
+nameSuffix: -v2
+
+commonAnnotations:
+  environment: production
+  owner: team-a
+
+commonLabels:
+  app: my-app
+  tier: frontend
+
+
+# IMAGES - updates container images in deployments
+images:
+  - name: nginx
+    newTag: 1.21.0
+
+
+# PATCHES 
+patches:
+- path: patch.yaml
+  target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: deploy.*
+    labelSelector: "env=dev"
+    annotationSelector: "zone=west"
+- patch: |-
+    - op: replace
+      path: /some/existing/path
+      value: new value    
+  target:
+    kind: MyKind
+    labelSelector: "env=dev"
+
+patchesStrategicMerge:
+  - patch.yaml
+
+transformers:
+  - custom-transform.yaml
+
+patchesJson6902:
+  - target:
+      version: apps/v1
+      kind: Deployment
+      name: my-app
+    path: patch.json
+
+
+# SECRETS AND CONFIGMAPS 
+secretGenerator:
+  - name: my-secret
+    literals:
+      - username=admin
+      - password=supersecret
+    files:
+      - ssh-privatekey=/path/to/private.key
+    envs:
+      - secret.env
+
+configMapGenerator:
+  - name: app-config
+    literals:
+      - key1=value1
+      - key2=value2
+    files:
+      - /path/to/config.properties
+    envs:
+      - config.env
+
+
+# HELM CHARTS
+helmCharts:
+  - name: my-app
+    releaseName: my-app-release
+    valuesFile: my-values.yaml
+    namespace: my-namespace
+    version: v3
+
+
+# VARIABLES 
+vars:
+  - name: SERVICE_NAME
+    objref:
+      kind: Service
+      name: my-service
+      apiVersion: v1
+    fieldref:
+      fieldpath: metadata.name
+
+
+# REPLACEMENT
+replacements:
+  - source:
+      kind: Secret
+      name: db-secret
+      fieldPath: data.db_password  # Path to the base64-encoded password
+    targets:
+      - select:
+          kind: Deployment
+          name: my-app
+        fieldPaths:
+          - spec.template.spec.containers[0].env[0].value  # Replace "REPLACEME" in env

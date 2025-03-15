@@ -1,0 +1,79 @@
+# NOTIFICATIONS 
+
+# Allow to receive alerts for important events related to application syncs, health status changes and other activities in ArgoCD. 
+# Allow to receive informations through integrations with communication channels like: Slack, email, webhook endpoints...
+# - ConfigMap : argocd-notification-cm - defines triggers and templates 
+# - Secret : argocd-notification-secret - holds sensitive data like webhook URLs or email credentials 
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm  # ConfigMap for defining notifications configuration
+  namespace: argocd  # Namespace where ArgoCD is installed
+data:
+  # Triggers: Define which events will trigger notifications and how they are sent
+  trigger.on-sync-failed: |  # Trigger for when an application sync fails
+    - description: Application sync failed  # Description of the trigger
+      send: [slack, email]  # Define which channels will receive this notification
+      condition: app.status.sync.status == 'Synced' && app.status.health.status == 'Healthy'
+      template: sync-failed  # Use the 'sync-failed' template for this notification
+
+  trigger.on-sync-succeeded: |  # Trigger for when an application syncs successfully
+    - description: Application sync succeeded
+      send: [slack]
+      template: sync-succeeded  # Use the 'sync-succeeded' template for this notification
+
+  # Templates: Define the content and format of notifications
+  template.sync-failed: |  # Template used when a sync fails
+    message: |
+      🚨 Sync failed for application '{{app.metadata.name}}'.
+      Status: {{app.status.sync.status}}.
+      Error: {{app.status.conditions[0].message}}.
+    slack:
+      title: Application '{{app.metadata.name}}' sync failed
+      body: |
+        Sync failed with status: {{app.status.sync.status}}.
+        Error: {{app.status.conditions[0].message}}.
+
+  template.sync-succeeded: |  # Template used when a sync succeeds
+    message: |
+      🎉 Sync succeeded for application '{{app.metadata.name}}'.
+    slack:
+      title: Application '{{app.metadata.name}}' synced successfully
+      body: |
+        The application '{{app.metadata.name}}' was synced successfully to the cluster.
+        Current status: {{app.status.sync.status}}.
+
+# trigger.on-sync-failed: Defines a trigger that sends a notification when an application sync fails. The trigger includes:
+# description: A description of what this trigger does.
+# send: Specifies which notification channels should be used (e.g., Slack, email).
+# condition: A condition that determines when the notification is sent. In this example, the notification is sent if the sync status is "Synced" but the health status is "Healthy." This condition is optional and can be customized based on various app statuses.
+# template: Specifies which template to use for the notification content. In this case, it's using the sync-failed template.
+# template.sync-failed: Defines the content and format of the notification that is sent when a sync fails.
+# message: The main message body of the notification. Dynamic variables like {{app.metadata.name}} and {{app.status.sync.status}} are used to include contextual information about the application and its current state.
+# slack.title: The title of the Slack notification.
+# slack.body: The body of the Slack notification, which also includes dynamic variables.
+# template.sync-succeeded: Defines the notification content for when a sync succeeds. Similar to the failure template, it contains dynamic information about the application's sync status.
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-notifications-secret  # Secret containing sensitive information for notifications
+  namespace: argocd
+stringData:
+  # Slack Webhook URL for sending notifications to a Slack channel
+  slack-token: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
+
+  # SMTP configuration for sending email notifications
+  email-username: your-email@example.com  # Username for SMTP
+  email-password: your-email-password  # Password for SMTP
+  smtp-server: smtp.example.com  # SMTP server address
+  smtp-port: "587"  # SMTP server port
+  smtp-from: ArgoCD <noreply@example.com>  # Sender email address
+
+# slack-token: Stores the webhook URL for Slack notifications. This webhook URL is used to send messages to a specific Slack channel.
+# email-username / email-password: The username and password for the SMTP server, used for sending email notifications.
+# smtp-server / smtp-port: The SMTP server's address and port, needed for connecting to the email server.
+# smtp-from: Specifies the "from" address used when sending email notifications.

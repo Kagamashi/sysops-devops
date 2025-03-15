@@ -1,0 +1,22 @@
+
+# canary release
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: my-service
+spec:
+  hosts:
+    - my-service.default.svc.cluster.local
+  http:
+    - route:
+        - destination:
+            host: my-service
+            subset: v1  # Stable version
+          weight: 80     # 80% of traffic
+        - destination:
+            host: my-service
+            subset: v2  # Canary version
+          weight: 20     # 20% of traffic
+
+---

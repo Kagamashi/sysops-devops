@@ -1,0 +1,22 @@
+
+# clone requests to a different service version for testing without affecting users
+
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: my-service
+spec:
+  hosts:
+  - my-service
+  http:
+    - route:
+        - destination:
+            host: my-service
+            subset: stable
+      mirror:
+        host: my-service
+        subset: v2
+      mirrorPercentage:
+        value: 10
+
+---

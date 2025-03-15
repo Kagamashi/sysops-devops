@@ -1,0 +1,21 @@
+
+# ArgoCD can fetch secrets dynamically from Vault by integrating with ArgoCD Vault Plugin (AVP).
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-app
+  namespace: argocd
+spec:
+  source:
+    repoURL: https://github.com/example/repo.git
+    path: manifests
+    targetRevision: HEAD
+    plugin:
+      env:
+        - name: VAULT_ADDR
+          value: https://vault.example.com
+        - name: VAULT_ROLE
+          value: my-role
+
+---

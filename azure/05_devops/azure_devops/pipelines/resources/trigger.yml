@@ -1,0 +1,72 @@
+# TRIGGERS define when a pipeline should automatically run
+# This includes both continuous integration triggers, which start a pipeline after commits to repository 
+# and scheduled trigger for running pipelines at set times 
+
+# Key trigger types
+# CI Trigger: runs pipeline when code is pushed to specific branches 
+# PR Trigger: runs pipeline when a pull request is created or updated 
+# Scheduled Trigger: runs pipeline at specific times or intervals 
+
+# Common fields 
+# trigger: defines CI trigger rules
+#   branches: include or exclude branches for the trigger 
+#   paths: include or exclude file paths that should trigger the pipeline 
+# pr: defines triggers for pull requests 
+# schedules: defines the time schedule for running pipelines 
+
+# Additional trigger options 
+# batch: combines multiple commits into a single build 
+# path filters: only trigger pipelines for changes in specific files/directories 
+# autoCancel: automatically cancels old pipeline runs if a newer one is triggered
+
+###
+
+# example CI trigger on specific branches
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+    exclude:
+      - feature/*
+  paths:
+    include:
+      - src/
+    exclude: 
+      - docs/ 
+
+
+# example PR trigger
+pr:
+  branches:
+    include:
+      - main
+    paths: # trigger only on changes to specific dir
+      include:
+        - src/*
+      exclude:
+        - docs/*
+
+
+# example scheduled trigger (multiple schedules)
+schedules:
+  - cron: "0 2 * * *"   # Runs at 2 AM every day
+    displayName: "Nightly Build for Main"
+    branches:
+      include:
+        - main
+        
+  - cron: "0 3 * * 1"   # Runs every Monday at 3 AM
+    displayName: "Weekly Build for Develop"
+    branches:
+      include:
+        - develop
+
+
+# run only if there are new changes
+schedules:
+  - cron: "0 2 * * *"
+    branches:
+      include:
+        - main
+    always: false   # Run only if there are new changes

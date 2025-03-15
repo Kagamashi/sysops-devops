@@ -1,0 +1,109 @@
+# ADMISSION CONTROLLER
+# Admission Controllers are special components in Kubernetes that intercept and potentially modify requests to the API server before the objects are persisted to the cluster.
+#   Validating Admission Controllers: Validate requests and can accept or reject them based on defined rules.
+#   Mutating Admission Controllers: Can modify or mutate objects before they are persisted.
+
+
+# ADMISSION WEBHOOK
+# Admission Webhooks extend admission controller functionality by allowing custom logic to be executed through external webhooks.
+# This allows Kubernetes clusters to be extended with custom policies or security requirements.
+#   MutatingAdmissionWebhook: Mutates the incoming request, typically by adding or modifying fields.
+#   ValidatingAdmissionWebhook: Validates the incoming request, ensuring it meets certain conditions before it is accepted.
+
+# Admission Controller Workflow:
+# 1. Request:                           user/system makes request to Kubernetes API 
+# 2. Authentication and Authorization:  Kubernetes checks if user is authenticated and authorized to make request 
+# 3. Admission Controller Invocation:   request is pased to admission controllers which can modify or validate it 
+# 4. Object Persistence:                if all admission controllers pass the request, it is persisted in etcd and corresponding resources are created 
+
+---
+
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: example-mutating-webhook          # Name of the MutatingWebhookConfiguration
+webhooks:
+  - name: pod-sidecar-injector.mycompany.com  # Name of the webhook, must be unique within the configuration
+    clientConfig:                             # Defines how to communicate with the webhook service
+      service:
+        name: sidecar-injector-svc            # The service that handles webhook requests
+        namespace: webhook-namespace          # Namespace where the webhook service is running
+        path: "/mutate"                       # The endpoint on the service to invoke for mutations
+      caBundle: <BASE64_CA_CERT>              # CA bundle to validate the webhook service's server certificate
+    rules:                                    # Rules define when the webhook is invoked
+      - operations: ["CREATE"]                # Webhook triggers only on CREATE operations
+        apiGroups: [""]                       # API groups the webhook applies to ("" means core API group)
+        apiVersions: ["v1"]                   # Versions of the API that the webhook targets (v1 for Pods)
+        resources: ["pods"]                   # Resource types the webhook applies to (Pods in this case)
+    failurePolicy: "Ignore"                   # What happens if the webhook fails ("Ignore" or "Fail")
+    matchPolicy: "Exact"                      # Match policy when comparing object versions (Exact or Equivalent)
+    namespaceSelector:                        # Specify which namespaces this webhook applies to
+      matchLabels:                            # Webhook will apply only to namespaces with these labels
+        environment: "production"
+    objectSelector:                           # Further filter the resources to which the webhook applies
+      matchExpressions:
+        - key: "app"
+          operator: "In"
+          values: ["nginx", "redis"]          # Webhook applies only to Pods with these labels
+    sideEffects: "None"                       # Side effects of the webhook, possible values: "None", "Some"
+    admissionReviewVersions: ["v1"]           # API versions of AdmissionReview objects supported by the webhook
+    timeoutSeconds: 5                         # Timeout for webhook requests (seconds)
+
+# clientConfig: Defines how the API server connects to the webhook server. You can specify either a Kubernetes service (service) or an external URL (url). The CA bundle is required for secure communication.
+# rules: Specifies which operations, resources, and API versions this webhook applies to. In this case, it applies to the CREATE operation on Pods in the core API group (v1).
+# failurePolicy: Defines the behavior when the webhook call fails. If set to "Ignore", Kubernetes proceeds with the request; if set to "Fail", the request is rejected.
+# namespaceSelector and objectSelector: Control which namespaces or objects are subject to the webhook. These are useful for applying policies only in specific environments (e.g., production) or for specific applications.
+# sideEffects: Informs Kubernetes about whether the webhook has side effects that affect other resources.
+# timeoutSeconds: Sets a maximum time for the webhook to respond. If the webhook doesn't respond within this time, the API server will either fail or ignore the webhook based on the failurePolicy.
+
+--- 
+
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: example-validating-webhook          # Name of the ValidatingWebhookConfiguration
+webhooks:
+  - name: pod-image-validator.mycompany.com # Name of the webhook
+    clientConfig:                           # Defines how to communicate with the webhook service
+      service:
+        name: image-validator-svc           # The service that handles webhook requests
+        namespace: webhook-namespace        # Namespace where the webhook service is running
+        path: "/validate"                   # The endpoint on the service to invoke for validations
+      caBundle: <BASE64_CA_CERT>            # CA bundle to validate the webhook service's server certificate
+    rules:                                  # Rules define when the webhook is invoked
+      - operations: ["CREATE", "UPDATE"]    # Webhook triggers on CREATE and UPDATE operations
+        apiGroups: [""]                     # API groups the webhook applies to ("" means core API group)
+        apiVersions: ["v1"]                 # Versions of the API that the webhook targets (v1 for Pods)
+        resources: ["pods"]                 # Resource types the webhook applies to (Pods in this case)
+    failurePolicy: "Fail"                   # What happens if the webhook fails ("Ignore" or "Fail")
+    matchPolicy: "Exact"                    # Match policy when comparing object versions
+    namespaceSelector:                      # Specify which namespaces this webhook applies to
+      matchLabels:
+        environment: "production"
+    objectSelector:                         # Further filter the resources to which the webhook applies
+      matchExpressions:
+        - key: "app"
+          operator: "In"
+          values: ["nginx", "redis"]        # Webhook applies only to Pods with these labels
+    sideEffects: "None"                     # Side effects of the webhook, possible values: "None", "Some"
+    admissionReviewVersions: ["v1"]         # API versions of AdmissionReview objects supported by the webhook
+    timeoutSeconds: 5                       # Timeout for webhook requests (seconds)
+
+# clientConfig: Similar to the MutatingWebhookConfiguration, defines how the API server connects to the webhook service.
+# rules: In this case, the webhook applies to both CREATE and UPDATE operations on Pods. This means the webhook will validate Pods during both creation and updates.
+# failurePolicy: Set to "Fail", meaning that if the webhook cannot be reached or returns an error, the API server will reject the request.
+# namespaceSelector: This field ensures that the webhook applies only to specific namespaces, such as production environments.
+# objectSelector: Filters which objects the webhook applies to, based on labels. In this example, it only applies to Pods labeled as nginx or redis.
+# sideEffects: Specifies whether the webhook has side effects. "None" indicates that the webhook doesn’t modify other resources.
+# admissionReviewVersions: Specifies the API versions of the AdmissionReview object that the webhook can handle.
+
+---
+
+# Configure Admission Webhook
+# 1. Prepare Webhook Server: write logic using programming languages like Python || Go || Node.js
+# 2. Package the server into a Docker container and deploy into cluster (using Deployments || Stateful Set)
+# 3. Expose webhook server within cluster using Kubernetes Service
+# 4. Create a MutatingWebhookConfiguration || ValidatingWebhookConfiguration to define the webhook for specific resource types,
+# operations and conditions.
+# 5. Create a CA certificate and sign it with a private key to secure communication between the webhook server and the API server.
+# 6. Update the MutatingWebhookConfiguration || ValidatingWebhookConfiguration with the CA certificate.

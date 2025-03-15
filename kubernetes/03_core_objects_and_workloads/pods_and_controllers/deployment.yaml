@@ -1,0 +1,115 @@
+# Deployment
+# Provide declarative updates to applications, handling the scaling and rollout of new version as well as rollback functionality.
+
+# - Declarative Updates - we describe desired state and Kubernetes makes the cluster conform to that state 
+# - Rolling Updates and Rollbacks 
+# - Scaling 
+# - Self-healing - Kubernetes automatically replace crashed Pods 
+
+# Deployment strategies:
+# - RollingUpdate (default) : gradually updates Pods in a Deployment with zero downtime 
+#     maxUnavailable: max number of Pods that can be unavailable during update process 
+#     maxSurge: how many additional Pods can be created during the update 
+# - Recreate : terminates all existing Pods before creating new ones
+
+--- 
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+  labels:              # Labels for organizing and selecting resources
+    app: my-app
+    tier: backend
+spec:
+  replicas: 3           # Number of desired replicas (Pods)
+  selector:             # Pod selector; defines which Pods belong to this Deployment
+    matchLabels:
+      app: my-app
+  strategy:             # Defines the update strategy for the Deployment
+    type: RollingUpdate  # Type of update: RollingUpdate (default) or Recreate
+    rollingUpdate:
+      maxUnavailable: 25%  # Maximum number of Pods that can be unavailable during the update
+      maxSurge: 1          # Maximum number of extra Pods that can be created during the update
+  minReadySeconds: 10     # Minimum time a Pod should be ready before being considered available
+  revisionHistoryLimit: 10 # How many old ReplicaSets to retain for rollback purposes
+  progressDeadlineSeconds: 600  # Time in seconds to wait for the deployment to be successful
+  template:              # The Pod template; defines how the Pods are created
+    metadata:
+      labels:            # Labels that will be applied to the Pods created by this Deployment
+        app: my-app
+    spec:
+      containers:
+        - name: my-container     # Name of the container
+          image: nginx:1.17.4    # Image and version of the container
+          imagePullPolicy: IfNotPresent  # Image pull policy (Always, IfNotPresent, Never)
+
+          ports:
+            - containerPort: 80  # The port exposed by the container
+
+          env:                    # Environment variables for the container
+            - name: ENV_VAR_NAME
+              value: "env_value"
+
+          resources:              # Resource requests and limits for the container
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+
+          livenessProbe:           # Liveness probe to check if the container is alive
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
+
+          readinessProbe:          # Readiness probe to check if the container is ready to serve traffic
+            httpGet:
+              path: /ready
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          volumeMounts:            # Mount volumes into the container
+            - mountPath: /data
+              name: my-volume
+
+      volumes:                     # Volumes used by the Pods
+        - name: my-volume
+          emptyDir: {}             # Example volume type: emptyDir (temporary storage)
+
+      restartPolicy: Always         # Pod restart policy (Always, OnFailure, Never)
+      terminationGracePeriodSeconds: 30  # Time given for a container to gracefully shut down
+  paused: false  # Set to true if you want to pause the Deployment (e.g., to stop further rollouts temporarily)
+
+--- 
+
+# apiVersion: Specifies the API version for the Deployment. For stable deployments, it's apps/v1.
+# kind: Defines the resource type, which is Deployment in this case.
+# metadata: Contains the metadata for the Deployment, such as the name and labels. Labels are used to organize resources and for selectors.
+# spec.replicas: Specifies the number of replicas (i.e., how many Pods should be running at any given time).
+# spec.selector: This is the label selector, which matches labels to the Pods managed by the Deployment. In this example, it matches Pods labeled app: my-app.
+# spec.strategy: Defines how updates to the Deployment are handled.
+#   RollingUpdate: The default strategy where Pods are updated gradually to avoid downtime.
+#   maxUnavailable: Specifies the maximum number of Pods that can be unavailable during the update.
+#   maxSurge: Specifies how many additional Pods can be created temporarily during the update.
+# spec.minReadySeconds: The minimum amount of time a Pod must be available before it is considered "ready."
+# spec.revisionHistoryLimit: Limits the number of previous ReplicaSets to retain for rollback purposes. If this limit is reached, older ReplicaSets are deleted.
+# spec.progressDeadlineSeconds: Time in seconds before the deployment is considered to have failed if it hasn't completed.
+# spec.template: Defines the Pod template, which describes how Pods created by this Deployment should look.
+#   metadata.labels: Defines the labels that will be applied to Pods created by this Deployment.
+#   spec.containers: Lists the containers that will run in each Pod. Each container can have:
+#     name: Name of the container.
+#     image: Docker image for the container, including the version (tag).
+#     ports: Ports exposed by the container.
+#     env: Environment variables passed to the container.
+#     resources: CPU and memory resource requests and limits.
+#     livenessProbe: Checks whether the container is still running. If the probe fails, the container is restarted.
+#     readinessProbe: Checks whether the container is ready to accept traffic.
+#     volumeMounts: Mounts storage volumes into the container.
+# spec.volumes: Defines volumes that can be mounted by containers. In this example, an emptyDir volume is used, which is temporary storage available to all containers in the Pod.
+# restartPolicy: Defines the restart policy for the Pods. In most cases, it's set to Always.
+# paused: (Optional) If set to true, the Deployment is paused, meaning no new rollouts will occur until it is resumed.

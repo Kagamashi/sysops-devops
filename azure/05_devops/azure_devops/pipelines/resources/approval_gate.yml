@@ -1,0 +1,25 @@
+# MANUAL APPROVAL
+# require one or more individuals to review and approve the deployment before it proceeds
+# pipeline pauses until all specified approved have approved the deployment
+
+approvals:
+  - approvers:
+      - user1@domain.com
+      - user2@domain.com
+
+
+###
+
+# AUTOMATED GATES
+# perform predefined checks to ensure that certain conditions are met before a deployment proceeds
+# - Work Item Queries : ensures there are no unresolved work items
+# - Monitoring Tools : queries monitoring tools like Azure Application Insights to verify application health
+# - REST API Calls - queries external services or APIs to validate conditions before allowing a deployment to proceed
+
+preDeployGates:
+  - waitForGates:
+      timeout: 0h 10m
+      gates:
+        - queryWorkItems:
+            workItemType: 'Bug'
+            minimumExpectedCount: 0

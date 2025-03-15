@@ -1,0 +1,48 @@
+
+# Used to define how KEDA should scale our application and what the triggers are
+
+# - ideal for short-lived, parallelizable workloads such as data processing, video transcoding, ETL pipelines
+# - used for batch processing workloads that need to dynamically create Jobs
+# - ensures Jobs are created only when work is available, reducing idle resources
+
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: rabbitmq-consumer
+  namespace: default
+spec:
+  jobTargetRef:
+    template:
+      spec:
+        containers:
+        - name: demo-rabbitmq-client
+          image: demo-rabbitmq-client:1
+          imagePullPolicy: Always
+          command: ["receive",  "amqp://user:PASSWORD@rabbitmq.default.svc.cluster.local:5672"]
+          envFrom:
+            - secretRef:
+                name: rabbitmq-consumer-secrets
+        restartPolicy: Never
+    backoffLimit: 4  
+  pollingInterval: 10             # Optional. Default: 30 seconds
+  maxReplicaCount: 30             # Optional. Default: 100
+  successfulJobsHistoryLimit: 3   # Optional. Default: 100. How many completed jobs should be kept.
+  failedJobsHistoryLimit: 2       # Optional. Default: 100. How many failed jobs should be kept.
+  scalingStrategy:
+    strategy: "custom"                        # Optional. Default: default. Which Scaling Strategy to use.
+    customScalingQueueLengthDeduction: 1      # Optional. A parameter to optimize custom ScalingStrategy.
+    customScalingRunningJobPercentage: "0.5"  # Optional. A parameter to optimize custom ScalingStrategy.
+  triggers:
+  - type: rabbitmq
+    metadata:
+      queueName: hello
+      host: RabbitMqHost
+      queueLength  : '5'
+
+---
+
+# minReplicaCount: The minimum number of replicas KEDA will maintain (default: 0).
+# maxReplicaCount: The maximum number of replicas allowed.
+# cooldownPeriod: Time (in seconds) before scaling down after an inactivity period (default: 300).
+# pollingInterval: How often KEDA checks trigger conditions (default: 30 seconds).
+# successfulJobsHistoryLimit / failedJobsHistoryLimit: Number of historical job records to keep for reference.

@@ -1,0 +1,30 @@
+
+# Once a certificate is issued, it can be referenced in an Ingress resource.
+
+# - Ingress references the TLS certificate stored in example-com-tls.
+# - Cert-Manager ensures the certificate is issued and renewed automatically.
+# - Works with NGINX, Traefik, and other Ingress controllers.
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod # this annotation makes CertManager generate certificates automatically
+spec:
+  tls:
+    - hosts:
+        - example.com
+      secretName: example-com-tls
+  rules:
+    - host: example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: my-service
+                port:
+                  number: 80
+

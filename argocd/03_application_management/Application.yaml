@@ -1,0 +1,116 @@
+
+# Application
+
+# Custom Kubernetes resource that represents a deployment of set of resources (YAML manifests, Helm charts, Kustomize config) defined in Git repository.
+# ArgoCD continuously syncs the desired state from Git to Kubernetes cluster and ensures that the actual state in the cluster matches the state in Git.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application  # Defines the ArgoCD Application resource
+metadata:
+  name: my-application  # The name of your application
+  namespace: argocd  # The namespace where ArgoCD is installed (typically 'argocd')
+  labels:
+    app.kubernetes.io/managed-by: argocd  # Label to indicate that this app is managed by ArgoCD
+spec:
+  project: default  # The ArgoCD project this application belongs to (default project if not specified)
+
+  # Source section defines where the application manifests are located
+  source:
+    repoURL: https://github.com/my-org/my-app  # The Git repository URL where manifests are stored
+    targetRevision: HEAD  # The Git branch, tag, or commit SHA to track (HEAD tracks the latest commit)
+    path: manifests  # The directory in the Git repository where the application manifests are stored
+    helm:  # Optional: If using a Helm chart, you can provide Helm-specific parameters here
+      valueFiles:
+        - values.yaml  # Specify Helm values files
+      parameters:
+        - name: replicas  # Helm parameter name
+          value: "3"  # Helm parameter value
+      releaseName: my-app-release  # Name of the Helm release
+    kustomize:  # Optional: If using Kustomize, define Kustomize-specific options
+      images:
+        - nginx:latest  # Override images in Kustomize files
+      namePrefix: dev-  # Prefix to add to all Kustomize resources
+    directory:  # Optional: If the source is a plain directory of YAML files
+      recurse: true  # Enable recursive search for manifests in subdirectories
+
+  # Destination section defines where the application will be deployed
+  destination:
+    server: https://kubernetes.default.svc  # URL of the Kubernetes API server (use default for in-cluster)
+    namespace: my-app-namespace  # Namespace in the target cluster where the app will be deployed
+
+  # SyncPolicy section defines how and when ArgoCD should sync the application
+  syncPolicy:
+    retry:
+    limit: 5
+    backoff:
+      duration: 5s
+      factor: 2
+      maxDuration: 3m
+    automated:  # Enable automated syncing
+      prune: true  # Automatically delete resources that are no longer defined in Git
+      selfHeal: true  # Automatically reapply resources if they drift from the desired state
+    syncOptions:
+      - CreateNamespace=true  # Automatically create the target namespace if it doesn't exist
+      - PrunePropagationPolicy=foreground  # Defines how pruning of resources is handled (foreground, background, orphan)
+
+  # Additional options for sync phases and hooks
+  syncHooks:
+    preSync:  # Run before the main sync (e.g., running database migrations)
+      - exec:
+          command: ["kubectl"]
+          args: ["apply", "-f", "db-migration.yaml"]
+
+  # Health checks to monitor application health status
+  healthChecks:
+    - apiVersion: v1
+      kind: Deployment
+      name: my-deployment
+      status: Healthy  # ArgoCD considers this resource healthy if it reaches the desired state
+
+  # Configurations for managing multiple sources, e.g., multiple clusters
+  sources:
+    - repoURL: https://github.com/another-org/my-app2
+      path: manifests/app2
+      targetRevision: HEAD
+      # using Kustomize
+    - repoURL: https://github.com/example/kustomize-repo.git
+      path: overlays/prod
+      targetRevision: HEAD
+      kustomize:
+        namePrefix: prod-
+
+  # Ignore differences between live and desired state for specific fields
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:  # Ignore changes in these fields between live state and Git
+        - /spec/replicas  # This ignores the number of replicas if they differ
+
+  # Resource tracking and operations configuration
+  info:
+    - name: app_version  # Additional information or metadata about the application
+      value: "v1.0.0"
+
+  # Resources management (additional options)
+  revisionHistoryLimit: 10  # Limits the number of past deployments stored for rollback
+  orphanedResources:  # Define handling for orphaned resources (resources not present in Git)
+    warn: true  # Warn about orphaned resources instead of pruning them automatically
+  
+  serviceAccountName: argocd-service-account
+---
+
+# metadata.name: Defines the name of the ArgoCD application.
+# metadata.namespace: The namespace where ArgoCD is installed. Typically, ArgoCD runs in its own namespace (argocd).
+# spec.project: Defines the project the application belongs to. Projects can restrict which repositories and clusters the application can use.
+# spec.source.repoURL: Specifies the Git repository URL where the application’s Kubernetes manifests or Helm charts are stored.
+# spec.source.targetRevision: The branch, tag, or commit SHA that ArgoCD will track for updates.
+# spec.source.path: The directory within the Git repository where the application manifests or Helm chart is located.
+# spec.destination.server: The Kubernetes API server where the application will be deployed.
+# spec.destination.namespace: The Kubernetes namespace where the application resources will be created.
+# spec.syncPolicy.automated: Specifies automated sync behavior. When enabled, ArgoCD will automatically sync the application when changes are detected in Git.
+# spec.syncPolicy.prune: If enabled, ArgoCD will automatically delete Kubernetes resources that are no longer defined in the Git repository (pruning).
+# spec.syncPolicy.selfHeal: Automatically heals the application if resources are manually modified or drift from the desired state.
+# spec.healthChecks: Defines custom health checks to monitor the health of resources in the application.
+# spec.syncHooks: Allows defining custom logic (such as pre-sync or post-sync hooks) that runs at different phases of the sync process.
+# spec.ignoreDifferences: Ignores differences between the live state and the desired state for specific fields. Useful for fields that change dynamically, such as replica counts.
+# spec.orphanedResources.warn: Generates warnings for orphaned resources (resources in the cluster that are not defined in the Git repository) instead of pruning them.

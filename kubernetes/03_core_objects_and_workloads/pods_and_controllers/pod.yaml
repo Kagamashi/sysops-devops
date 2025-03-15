@@ -1,0 +1,161 @@
+# POD
+# - containers are main workload units inside a Pod
+# - each Pod gets its own IP and shares the same network namespace between containers
+
+# init containers: run before main application container starts, useful for setup tasks
+initContainers:
+- name: init-script
+  image: busybox
+  command: ['sh', '-c', 'echo Initializing && sleep 10']
+
+# sidecars: enhanvce main container functionality without modifying its code
+# used for: log aggregation (fluentd), service proxy (istio), data synchronization..
+containers:
+- name: app-container
+  image: nginx:latest
+- name: log-collector
+  image: fluentd
+  volumeMounts:
+  - name: logs
+    mountPath: /var/log/nginx
+
+
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+  labels:                # Labels to organize and select Pods
+    app: my-app
+    env: production
+  annotations:           # Annotations are for storing metadata (non-selective)
+    description: "This pod runs the my-app container"
+spec:
+  restartPolicy: Always                   # Pod restart policy (Always || OnFailure || Never)
+  serviceAccountName: my-service-account  # Attach a service account for the Pod
+  automountServiceAccountToken: false     # Disable auto-mounting of ServiceAccount token
+  containers:             # List of containers within the Pod (can be more than one)
+    - name: my-container  # Name of the container
+      image: nginx:latest # Container image and tag
+      imagePullPolicy: IfNotPresent # How to pull the image (Always || IfNotPresent || Never)
+      
+      lifecycle:
+        postStart:
+        exec:
+          command: ["/bin/sh", "-c", "echo Hello from the postStart handler > /usr/share/message"]
+      preStop:
+        exec:
+          command: ["/bin/sh","-c","nginx -s quit; while killall -0 nginx; do sleep 1; done"]
+
+      command:            # Override the container's entry point
+        - "/bin/bash"
+        - "-c"
+        - "echo Hello, World!"
+      
+      args:               # Arguments to the command
+        - "--log-level"
+        - "info"
+        
+      ports:              # Container's exposed ports
+        - containerPort: 80    # The port the container will expose
+          name: http-port      # Name of the port for easy reference
+          protocol: TCP        # Protocol (TCP or UDP)
+          
+      env:                # Environment variables for the container
+        - name: ENV_VAR_NAME
+          value: "env_value"
+        - name: SECRET_ENV_VAR # Access secret value via environment variable
+          valueFrom:
+            secretKeyRef:
+              name: my-secret  # Name of the Kubernetes Secret
+              key: secret-key  # Specific key in the Secret
+
+      resources:          # Resource limits and requests for the container
+        requests:
+          memory: "64Mi"   # Minimum amount of memory to be allocated
+          cpu: "250m"      # Minimum CPU allocation
+        limits:
+          memory: "128Mi"  # Maximum memory limit
+          cpu: "500m"      # Maximum CPU limit
+
+      volumeMounts:        # Mount volumes into the container's filesystem
+        - mountPath: /data
+          name: my-volume
+          readOnly: false  # Whether the volume is read-only or read-write
+
+      startupProbe: # use for long initialization applications
+        httpGet:
+          path: /startup
+          port: 8080
+        failureThreshold: 30  # Allow up to 5 minutes (30 * 10s) to start
+        periodSeconds: 10
+
+      readinessProbe:      # Checks if the container is ready to serve traffic
+        httpGet:
+          path: /healthz
+          port: 80
+        initialDelaySeconds: 5  # Delay before the first probe
+        periodSeconds: 10       # How often the probe runs
+
+      livenessProbe:       # Checks if the container is still running
+        httpGet:
+          path: /live
+          port: 80
+        initialDelaySeconds: 10  # Delay before the first check
+        periodSeconds: 20        # How often the check runs
+
+  initContainers:         # Init containers that run before the main container
+    - name: init-myservice
+      image: busybox
+      command: ['sh', '-c', 'echo Initializing... && sleep 5']
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "50Mi"
+
+  volumes:                # Volumes that will be used in the Pod
+    - name: my-volume      # Name of the volume
+      emptyDir: {}         # Volume type (emptyDir, hostPath, etc.)
+
+  nodeSelector:           # Schedule the Pod to specific nodes based on labels
+    disktype: ssd
+
+  tolerations:            # Allow the Pod to tolerate taints on nodes
+    - key: "key1"
+      operator: "Equal"
+      value: "value1"
+      effect: "NoSchedule"
+
+  affinity:               # Advanced scheduling rules
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: disktype
+            operator: In
+            values:
+            - ssd
+
+  hostNetwork: false        # Use the host’s network namespace
+  dnsPolicy: ClusterFirst   # DNS policy for the Pod
+  securityContext:          # Pod-level security settings
+    runAsUser: 1000         # UID to run the container
+    fsGroup: 2000           # Group ID for all filesystems mounted by the Pod
+
+---
+
+# metadata: Contains the Pod’s metadata, such as its name, labels (for selection), and annotations (non-selective metadata).
+# spec.containers: Defines the list of containers that run inside the Pod. Each container has:
+  # name: Name of the container.
+  # image: The image used by the container.
+  # ports: Defines the ports exposed by the container.
+  # env: List of environment variables for the container.
+  # resources: Resource requests and limits for CPU and memory.
+  # volumeMounts: Defines where volumes are mounted inside the container.
+  # readinessProbe and livenessProbe: Health checks to determine if the container is ready to serve traffic and whether it is alive, respectively.
+# initContainers: Containers that run before the main container is started. Useful for initialization tasks like database migrations.
+# volumes: Defines volumes that can be shared among containers. In this case, an emptyDir volume is used, which is temporary storage created for the Pod.
+# nodeSelector, tolerations, affinity: Scheduling options to control where the Pod is placed in the cluster.
+# securityContext: Security-related settings, such as the user ID and group ID under which the containers run.

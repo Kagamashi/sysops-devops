@@ -1,0 +1,39 @@
+
+-  https://raw.githubusercontent.com/kubereboot/kured/1.17.0/kured-rbac.yaml
+-  https://raw.githubusercontent.com/kubereboot/kured/1.17.0/kured-ds-signal.yaml
+
+---
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kured
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: kured
+  template:
+    metadata:
+      labels:
+        name: kured
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/kured: unconfined
+    spec:
+      containers:
+      - name: kured
+        image: quay.io/weaveworks/kured:latest
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: run
+          mountPath: /var/run
+      volumes:
+      - name: run
+        hostPath:
+          path: /var/run
+      tolerations:
+        - key: CirticalAddonsonly
+          operator: Exists
+
+---

@@ -1,0 +1,17 @@
+
+# DENY TRAFFIC FROM SPECIFIC IP RANGE
+# This policy blocks all traffic from the IP range 10.0.0.0/16.
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-ip-range
+  namespace: default
+spec:
+  action: DENY
+  rules:
+    - from:
+        - source:
+            ipBlocks:
+              - 10.0.0.0/16
+
+---

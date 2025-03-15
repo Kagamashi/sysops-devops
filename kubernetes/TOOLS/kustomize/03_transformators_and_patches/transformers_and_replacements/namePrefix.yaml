@@ -1,0 +1,6 @@
+
+# Transformers add changes across every Kubernetes resource that is part of Kustomize configuration.
+
+# NamePrefix
+# Useful for differentiating resources across environments
+namePrefix: prefix-

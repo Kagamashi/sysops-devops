@@ -1,0 +1,20 @@
+apiVersion: karpenter.k8s.aws/v1alpha5
+kind: Provisioner
+metadata:
+  name: default
+spec:
+  requirements:
+    - key: "node.kubernetes.io/instance-type"
+      operator: In
+      values: ["t3.medium", "t3.large"]
+  limits:
+    resources:
+      cpu: "100"
+      memory: "200Gi"
+  provider:
+    subnetSelector:
+      karpenter.sh/discovery: "my-cluster"
+    securityGroupSelector:
+      karpenter.sh/discovery: "my-cluster"
+
+---

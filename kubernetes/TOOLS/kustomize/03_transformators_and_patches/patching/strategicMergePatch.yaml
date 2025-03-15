@@ -1,0 +1,49 @@
+
+# Strategic Merge Patch
+# use for simple field overrides (eg replicas, labels)
+
+# - works by overlaying changes on top of the original manifest
+# - only requires defining the fields that need modification
+# - uses Kubernetes built-in merging logic to update resources
+
+# overlays/dev/kustomization.yaml
+resources:
+  - ../../base
+patchesStrategicMerge:
+  - patch-deployment.yaml
+
+---
+
+# **deployment.yaml**
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+      - name: my-container
+        image: nginx:1.14
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+
+---
+
+# **patch-deployment.yaml**
+piVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 5
+
+# This will update only the replicas and image fields without replacing the entire resource.
+
+---

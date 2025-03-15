@@ -1,0 +1,125 @@
+# PeerAuthentication
+
+# Security policy that defines the mutual TLS (mTLS) settings for service-to-service communication within the mesh. 
+# It controls whether mTLS is enabled and how it is enforced between services. 
+
+# Key Features:
+#   Mutual TLS (mTLS): Controls whether mTLS is enforced between services in the mesh. This ensures that services authenticate each other and encrypt traffic between them.
+#   Mode Configuration: You can enforce strict mTLS, allow permissive mTLS (accept both mTLS and plain text), or disable mTLS.
+#   Namespace and Workload Scope: PeerAuthentication policies can be applied at the namespace level or scoped to individual workloads.
+
+# Modes of mTLS:
+#   STRICT: All communication between services must use mTLS. Services that do not support mTLS will be unable to communicate.
+#   PERMISSIVE: Services can communicate using either mTLS or plain text. This mode is useful during mTLS migration when some services may not yet support mTLS.
+#   DISABLE: mTLS is completely turned off, and all communication between services is in plaintext. Use this mode with caution, as it leaves services vulnerable to man-in-the-middle attacks.
+  
+---
+
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: my-peerauth-policy    # Name of the PeerAuthentication policy
+  namespace: default          # Namespace where the policy applies
+spec:
+  selector:                   # Apply the policy to specific workloads (optional)
+    matchLabels:
+      app: my-service          # Apply only to workloads with this label
+  mtls:                        # mTLS configuration
+    mode: STRICT               # Mode for mTLS (STRICT, PERMISSIVE, DISABLE)
+  # Optional: Configure how traffic between services is handled based on origin
+  portLevelMtls:               # mTLS settings specific to certain ports
+    8080:                      # Apply to port 8080
+      mode: DISABLE            # Disable mTLS for port 8080
+  # Optional: Configure policies for how peer authentication applies to workloads or namespaces
+  policy:
+    workloadSelector:          # Select specific workloads (optional)
+      matchLabels:
+        version: v1            # Apply only to the v1 version of the app
+
+---
+
+# selector: Specifies the workloads the PeerAuthentication applies to by matching labels on pods (e.g., app: my-service). If omitted, the policy applies to all workloads in the namespace.
+# mtls: Configures the mTLS mode for service-to-service communication:
+#   STRICT: Enforces mTLS, ensuring that all communication between services must use mutual TLS.
+#   PERMISSIVE: Accepts both mTLS and plaintext traffic, allowing a mix of secure and insecure communication.
+#   DISABLE: Turns off mTLS, allowing only plaintext traffic between services.
+# portLevelMtls: Configures port-specific mTLS settings, allowing you to enable or disable mTLS for specific ports. This is useful when certain services require different security configurations for different types of traffic on different ports.
+# policy: This section is optional and defines additional rules for how the PeerAuthentication policy applies to specific workloads or namespaces based on labels or other matching criteria.
+
+---
+
+### Example usage:
+
+# ENABLE STRICT mTLS FOR ALL SERVICES IN NAMESPACE
+# This policy enables strict mTLS for all services in the default namespace, ensuring that all communication between services is encrypted and authenticated.
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-mtls
+  namespace: default
+spec:
+  mtls:
+    mode: STRICT
+
+---
+
+# ALLOW BOTH mTLS AND PLAIN TEXT (PERMISSIVE MODE)
+# This policy configures permissive mTLS for services labeled with app: my-service, allowing both mTLS and plaintext traffic.
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: permissive-mtls
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: my-service
+  mtls:
+    mode: PERMISSIVE
+
+---
+
+# DISABLE mTLS FOR A SPECIFIC PORT
+# This policy disables mTLS for port 8080 of the service labeled app: my-service, while keeping mTLS enabled for other ports.
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: disable-mtls-port
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: my-service
+  portLevelMtls:
+    8080:
+      mode: DISABLE
+
+---
+
+# ENABLE mTLS FOR SPECIFIC WORKLOAD VERSION
+# This policy enforces strict mTLS for version v1 of the my-service application, using the version: v1 label.
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: v1-mtls
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: my-service
+      version: v1
+  mtls:
+    mode: STRICT
+    
+---
+
+# MESH-WIDE POLICY
+# Restricted on istio-system namespace
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: "example-peer-policy"
+  namespace: "istio-sytem" # !!!
+spec:
+  mtls:
+    mode: STRICT 

@@ -1,0 +1,21 @@
+
+# For users leveraging the Gateway API, Cert-Manager can be integrated to handle TLS certificates at the Gateway level.
+
+# - Gateway uses Cert-Manager-issued certificates for TLS termination.
+# - Works well in multi-tenant and cloud-native networking setups.
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: example-gateway
+  namespace: default
+spec:
+  gatewayClassName: nginx
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: "example.com"
+      tls:
+        certificateRefs:
+          - name: example-com-tls

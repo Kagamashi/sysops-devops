@@ -1,0 +1,22 @@
+# CONDITIONS control whether a particular job, stage or step runs.
+# We can define conditions based on pipeline state (e.g. success, failure), variables and custom expressions.
+
+# Common conditions 
+# succeeded(): runs when the previous stage or job succeeded
+# failed(): runs if the previous step, job or stage failed 
+# eq(variables['varName'], value): runs when a variable equals a specific value 
+# always(): runs regardless of success or failure 
+
+# Multiple conditions can be combined using logical operators: and, or, not
+
+###
+
+jobs:
+  - job: Deploy
+    condition: succeeded()
+    steps:
+      - script: echo "Deploying only if the build succeeded"
+
+# example conditional step
+      - script: echo "Run this step"
+        condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')

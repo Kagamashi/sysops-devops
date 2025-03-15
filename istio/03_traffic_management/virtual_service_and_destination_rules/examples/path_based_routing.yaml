@@ -1,0 +1,27 @@
+
+# Routes traffic based on the request path.
+
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: my-service
+spec:
+  hosts:
+    - my-service
+  http:
+    - match:
+        - uri:
+            prefix: /v1
+      route:
+        - destination:
+            host: my-service
+            subset: v1
+    - match:
+        - uri:
+            prefix: /v2
+      route:
+        - destination:
+            host: my-service
+            subset: v2
+
+---

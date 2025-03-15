@@ -1,0 +1,84 @@
+# TASKS represent individual units of work and can perform actions such as building code, running tests, or deploying applications.
+# Tasks can either be pre-defined (from Azure Pipelines task library) or custom (running custom scripts)
+
+# Key fields
+# task: specifies a built-in task to use
+# inputs: defines the inputs/parameters for the task
+# script: custom shell or Powershell scripts to execute commands 
+# checkout: controls the repository to check out
+
+###
+
+steps:
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: '$(Build.SourcesDirectory)'
+      Contents: '**'
+      TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+# example of custom script
+steps:
+  - script: |
+      echo "Building the project"
+      dotnet build
+    displayName: 'Build Project'
+
+###
+
+# Azure CLI Task: Executes Azure CLI commands to manage Azure resources.
+steps:
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: 'MyAzureSubscription'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        az group create --name myResourceGroup --location eastus
+
+
+# .NET Core Task: Builds and tests .NET Core applications.
+steps:
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'build'
+      projects: '**/*.csproj'
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'test'
+      projects: '**/*.Tests.csproj'
+
+
+# Docker Task: Builds, pushes, or runs Docker images.
+steps:
+  - task: Docker@2
+    inputs:
+      containerRegistry: 'MyDockerRegistry'
+      repository: 'myapp'
+      command: 'buildAndPush'
+      Dockerfile: '**/Dockerfile'
+      tags: |
+        $(Build.BuildId)
+
+
+# Copy Files Task: Copies files from one location to another during the pipeline.
+steps:
+  - task: CopyFiles@2
+    inputs:
+      sourceFolder: '$(Build.SourcesDirectory)'
+      contents: '**'
+      targetFolder: '$(Build.ArtifactStagingDirectory)'
+
+
+# Publish Artifacts Task: Publishes artifacts to be used later in the pipeline.
+steps:
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: '$(Build.ArtifactStagingDirectory)'
+      artifactName: 'drop'
+
+# CUSTOM TASK
+steps:
+  - script: |
+      echo "Custom task to clean up temp files"
+      rm -rf /tmp/my-temp-files
+    displayName: 'Clean up temporary files'

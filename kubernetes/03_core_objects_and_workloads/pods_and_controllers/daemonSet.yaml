@@ -1,0 +1,91 @@
+# DaemonSet
+# Ensures that a copy of specific Pods runs on ALL or a specific subset of Nodes in a cluster. 
+# Primarily used for deploying system-level services or workloads that should be available on every node: logging, monitoring, networking agents 
+
+# Key features: 
+#   - Automatic Node Inclusion: as new nodes are added to the cluster, DaemonSet automatically schedules the required Pods onto new nodes 
+#   - Selective Node Deployment: selectors, affinity, anti-affinity rules, tolerations 
+
+# Use cases:
+#   - Log collection: logging agents (Fluentd, Logstash)
+#   - Monitoring: node monitoring agents (Prometheus Node Exporter)
+#   - Networking: network-related agents (Calico, Weave) 
+#   - Storage management: storage services (Ceph, GlusterFS)
+
+# Update Strategy:
+#   - RollingUpdate (default): Pods are updated incrementalny
+#   - OnDelete: Pods are not updated automatically. Administrator must manually delete Pods for new Pods with updated configuration to be created. 
+
+--- 
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  labels:
+    app: node-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: node-monitoring  # Label selector to match Pods with the label app=node-monitoring
+  template:  # Pod template for the DaemonSet
+    metadata:
+      labels:
+        app: node-monitoring  # Labels applied to the Pods created by this DaemonSet
+    spec:
+      containers:
+        - name: node-exporter-container  # Name of the container
+          image: prom/node-exporter      # Container image for the node exporter
+          ports:
+            - containerPort: 9100        # Port exposed by the container for node exporter metrics
+
+          resources:                     # Resource requests and limits for the container
+            requests:
+              memory: "64Mi"             # Minimum memory request
+              cpu: "250m"                # Minimum CPU request
+            limits:
+              memory: "128Mi"            # Maximum memory limit
+              cpu: "500m"                # Maximum CPU limit
+      nodeSelector:                      # Target specific nodes by using node labels
+        node-role.kubernetes.io/worker: ""
+      tolerations:                       # Allow the DaemonSet to run on tainted nodes (e.g., master nodes)
+        - key: "node-role.kubernetes.io/master"
+          effect: NoSchedule             # Tolerate the NoSchedule taint on master nodes
+  updateStrategy:                        # Defines the update strategy for the DaemonSet
+    type: RollingUpdate                  # Rolling updates are the default strategy
+    rollingUpdate:
+      maxUnavailable: 1                  # Maximum number of unavailable Pods during the update
+
+---
+
+# apiVersion and kind: apps/v1 is the stable API version for DaemonSets, and DaemonSet defines the resource type.
+# metadata: Contains the name of the DaemonSet and optional labels that help in organizing and selecting resources.
+# spec.selector: The label selector defines how the DaemonSet identifies Pods that belong to it. In this case, Pods with the label app: node-monitoring will be managed by this DaemonSet.
+# spec.template: Defines the Pod template for the DaemonSet. This includes:
+#   containers: The container specifications for the Pods that will be created. This includes the container name, image, ports, and resource limits.
+#   nodeSelector: Allows you to target specific nodes based on labels. In this example, the DaemonSet Pods will only be scheduled on nodes labeled with node-role.kubernetes.io/worker.
+#   tolerations: Allows DaemonSet Pods to run on nodes with specific taints. In this example, the DaemonSet can tolerate the NoSchedule taint on master nodes, allowing it to run on those nodes if necessary.
+# updateStrategy: Defines how the DaemonSet handles updates. The default is RollingUpdate, which ensures that Pods are updated incrementally to minimize downtime. The maxUnavailable field specifies how many Pods can be unavailable during an update.
+
+--- 
+
+# NodeSelector : based on labels
+nodeSelector:
+  node-role.kubernetes.io/worker: ""
+
+
+# NodeAffinity
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: disktype
+          operator: In
+          values: ["ssd"]
+
+
+# Tolerations : allow DaemonSet Pods to run on nodes with taints
+tolerations:
+  - key: "node-role.kubernetes.io/master"
+    effect: NoSchedule

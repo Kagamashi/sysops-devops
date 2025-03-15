@@ -1,0 +1,74 @@
+# ReplicaSet
+# Replicaset is responsible for maintaining a stable set of replica Pods running at any given time. 
+# It ensures that a specified number of a Pod are running at all times. 
+
+# Deployments manage ReplicaSets and are commonly used because they provide additional features such as rolling updates and rollbacks.
+
+# ReplicaSet is useful for scenarios where you only need replication without the need for rolling updates or rollback capabilities.
+
+--- 
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: my-replicaset
+  labels:              # Labels for organizing and selecting resources
+    app: my-app
+    tier: frontend
+spec:
+  replicas: 3           # Number of desired Pods to run at any time
+  selector:             # Label selector to find Pods that should be managed by the ReplicaSet
+    matchLabels:
+      app: my-app
+      tier: frontend
+  template:             # Pod template for the ReplicaSet to manage
+    metadata:
+      labels:           # Labels that will be applied to the Pods created by the ReplicaSet
+        app: my-app
+        tier: frontend
+    spec:
+      containers:
+        - name: my-container     # Name of the container
+          image: nginx:1.17.4    # Image and version of the container
+          imagePullPolicy: IfNotPresent  # When to pull the image (Always, IfNotPresent, Never)
+          ports:
+            - containerPort: 80  # Expose port 80 on the container
+          resources:             # Resource requests and limits for the container
+            requests:
+              memory: "64Mi"     # Minimum memory required
+              cpu: "250m"        # Minimum CPU required
+            limits:
+              memory: "128Mi"    # Maximum memory allowed
+              cpu: "500m"        # Maximum CPU allowed
+          livenessProbe:         # Liveness probe to check if the container is alive
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 10  # Time to wait before the first probe
+            periodSeconds: 20       # How often the probe runs
+          readinessProbe:        # Readiness probe to check if the container is ready to serve traffic
+            httpGet:
+              path: /ready
+              port: 80
+            initialDelaySeconds: 5   # Time to wait before the first probe
+            periodSeconds: 10        # How often the probe runs
+      restartPolicy: Always         # Always restart the Pods on failure
+      terminationGracePeriodSeconds: 30  # Graceful shutdown period for the container
+
+--- 
+
+# apiVersion: Specifies the API version for the ReplicaSet. apps/v1 is the stable version.
+# kind: Defines the resource type, which is ReplicaSet in this case.
+# metadata: Contains metadata for the ReplicaSet, including its name and labels. The labels are useful for selecting and organizing resources within the cluster.
+# spec.replicas: Specifies the number of replicas (i.e., how many Pods should be running at any given time). If a Pod is deleted or crashes, the ReplicaSet will create a new one to meet the desired replica count.
+# spec.selector: The label selector defines how the ReplicaSet finds the Pods it manages. Pods with labels matching app: my-app and tier: frontend will be managed by this ReplicaSet.
+# spec.template: Defines the Pod template that the ReplicaSet will use to create Pods if the desired number of replicas is not met.
+#   metadata.labels: The labels for Pods created by the ReplicaSet. These labels must match the selector defined in spec.selector.
+#   spec.containers: Lists the containers that will run in each Pod. Each container can have:
+#     name: Name of the container.
+#     image: Docker image for the container, including the version (tag).
+#     ports: Ports exposed by the container.
+#     resources: CPU and memory resource requests and limits.
+#     livenessProbe: Checks whether the container is alive. If the probe fails, the container is restarted.
+#     readinessProbe: Checks whether the container is ready to accept traffic.
+# restartPolicy: Defines the restart policy for the Pods. In most cases, it's set to Always to ensure that the Pods are always running.

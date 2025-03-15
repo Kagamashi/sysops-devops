@@ -1,0 +1,156 @@
+
+# EnvoyFilter
+
+# Advanced Istio resource that allows customizing the behavior of the Envoy proxies running as sidecars within service mesh. 
+# This is especially useful for advanced use cases which the standard Istio traffic management features may not cover.
+
+# Key Features:
+#   Custom Filters: Inject custom filters into the Envoy proxy for handling specific behaviors (e.g., authentication, rate-limiting, logging).
+#   Filter Manipulation: Modify existing Envoy filters, such as HTTP, TCP, or network filters.
+#   Traffic Transformation: Perform complex traffic manipulation or transformation at the proxy level.
+#   Extensibility: Allows you to integrate custom logic or external services by modifying the Envoy configuration.
+#   Per-Service or Global Scope: You can apply EnvoyFilters globally across the mesh or target specific workloads/services.
+
+---
+
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: my-envoy-filter
+  namespace: default            # Namespace where the filter applies
+spec:
+  workloadSelector:             # Apply the filter to specific workloads (optional)
+    labels:
+      app: my-service           # Apply the filter to workloads with this label
+  configPatches:                # List of patches to modify Envoy behavior
+    - applyTo: HTTP_FILTER      # Type of Envoy object to patch (e.g., HTTP_FILTER, NETWORK_FILTER, LISTENER, etc.)
+      match:                    # Conditions to match the request or listener
+        context: SIDECAR_INBOUND # Apply the filter to inbound traffic (SIDECAR_INBOUND || SIDECAR_OUTBOUND || GATEWAY)
+        listener:
+          portNumber: 8080
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager # Name of the Envoy filter
+      patch:
+        operation: INSERT_AFTER # Operation to perform (INSERT_AFTER || INSERT_BEFORE || REPLACE || REMOVE)
+        value:                  # The Envoy filter configuration
+          name: envoy.filters.http.lua # Name of the new filter to insert (Lua filter in this example)
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+            inlineCode: |
+              function envoy_on_request(request_handle)
+                request_handle:headers():add("x-custom-header", "custom-value")
+              end
+    - applyTo: NETWORK_FILTER     # Apply a network-level filter (TCP)
+      match:
+        context: SIDECAR_OUTBOUND # Apply this patch to outbound traffic
+        listener:
+          portNumber: 3306        # Apply to traffic on MySQL port 3306
+      patch:
+        operation: INSERT_BEFORE  # Insert the new filter before an existing one
+        value:
+          name: envoy.filters.network.mysql_proxy # MySQL proxy filter
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.network.mysql_proxy.v3.MySQLProxy
+            stat_prefix: mysql
+
+---
+
+# workloadSelector: Specifies which workloads the filter applies to by matching the labels on the pods (e.g., app: my-service). If omitted, the filter applies to all workloads in the namespace.
+# configPatches: This section defines the patches to be applied to Envoy’s configuration. Each patch includes:
+#   applyTo: Specifies the part of Envoy's configuration to modify (e.g., HTTP_FILTER, NETWORK_FILTER, LISTENER, CLUSTER).
+#   match: Defines the context in which the patch is applied (e.g., inbound/outbound traffic, specific listener ports).
+#   patch: Specifies the operation to perform (INSERT_BEFORE, INSERT_AFTER, REMOVE, MERGE) and the value of the new filter or configuration.
+# context: Defines the traffic context where the filter applies. Options include:
+#   SIDECAR_INBOUND: Inbound traffic to the Envoy proxy.
+#   SIDECAR_OUTBOUND: Outbound traffic from the Envoy proxy.
+#   GATEWAY: Traffic handled by Istio ingress or egress gateways.
+# listener: Specifies the listener that the filter applies to, based on the port or filter chain configuration.
+# patch: Defines the operation to apply to the existing configuration (e.g., insert a new filter, merge with existing settings, or remove a filter).
+#   value: The content of the patch, which defines the new Envoy filter or configuration to be applied.
+# priority: (Optional) Specifies the priority of this filter relative to other Envoy filters. Filters with higher priority numbers are applied later.
+# exportTo: (Optional) Controls whether the filter is visible only in the current namespace (".") or shared across namespaces ("*") in the mesh.
+
+---
+
+# Add Custom Headers: Use Lua filters to inject custom headers or modify requests/responses.
+# Traffic Manipulation: Modify traffic behavior or manipulate request/response payloads using WebAssembly (WASM) or Lua.
+# Protocol-Specific Proxying: Apply protocol-specific proxy filters (e.g., MySQL, MongoDB) that are not directly supported by Istio’s default behavior.
+# Security Enhancements: Enforce additional security policies like token validation or request logging at the proxy level.
+# Advanced Load Balancing: Customize load balancing or circuit breaking strategies beyond the default Istio configurations.
+
+### Usage example:
+
+# ADD CUSTOM HEADER WITH LUA
+# This EnvoyFilter inserts a Lua filter that adds a custom HTTP header (x-custom-header) to all inbound requests on port 8080.
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: add-custom-header
+  namespace: default
+spec:
+  workloadSelector:
+    labels:
+      app: my-service
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          portNumber: 8080
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.lua
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+            inlineCode: |
+              function envoy_on_request(request_handle)
+                request_handle:headers():add("x-custom-header", "my-value")
+              end
+
+---
+
+# MYSQL PROXY FOR OUTBOUND TRAFFIC
+# This EnvoyFilter adds a MySQL proxy filter to outbound traffic on port 3306, which logs MySQL queries and responses.
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: mysql-proxy
+  namespace: default
+spec:
+  workloadSelector:
+    labels:
+      app: my-database
+  configPatches:
+    - applyTo: NETWORK_FILTER
+      match:
+        context: SIDECAR_OUTBOUND
+        listener:
+          portNumber: 3306
+      patch:
+        operation: MERGE
+        value:
+          name: envoy.filters.network.mysql_proxy
+          config:
+            stat_prefix: outbound_mysql
+            access_log: /dev/stdout
+
+---
+
+# REMOVE A FILTER
+# This EnvoyFilter removes an existing HTTP filter (envoy.filters.http.cors) from inbound traffic.
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: remove-cors-filter
+  namespace: default
+spec:
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+      patch:
+        operation: REMOVE
+        value:
+          name: envoy.filters.http.cors

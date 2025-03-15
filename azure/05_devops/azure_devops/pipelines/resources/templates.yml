@@ -1,0 +1,59 @@
+# TEMPLATES allow to reuse pipeline logic across multiple pipelines, making YAML more modular and maintainable
+# Templates can contain jobs, steps, stages and even variables 
+
+# Key types of templates
+# Step templates: reuse steps in multiple jobs or stages 
+# Job templates: share entire jobs across different pipelines or stages
+# Stage templates: share entire stages across pipelines 
+# Variable templates: define reusable variables 
+
+# - Templates are referenced in main pipeline file, we need to pass parameters to customize them for different contexts
+
+# Key fields 
+# template: specifies the file path of the template 
+# parameters: passes parameters to the template for dynamic behavior 
+
+###
+
+# example step template (build-template.yaml)
+steps:
+  - script: |
+      echo "Building project in $(buildEnv)"
+    displayName: 'Build Step'
+
+
+# main pipeline using step template
+parameters:
+  - name: buildEnv
+    type: string
+    default: 'dev'
+
+stages:
+  - stage: Build
+    jobs:
+      - job: BuildJob
+        steps:
+          - template: build-template.yml
+            parameters:
+              buildEnv: 'production'
+
+###
+# test-template.yml
+parameters:
+  testProject: ''
+  testResultsFile: 'test-results.xml'
+
+jobs:
+  - job: RunTests
+    steps:
+      - script: |
+          echo "Running tests in $(parameters.testProject)"
+          dotnet test $(parameters.testProject) --logger "trx;LogFileName=$(parameters.testResultsFile)"
+        displayName: 'Run tests'
+
+# azure-pipelines.yml
+jobs:
+  - template: test-template.yml
+    parameters:
+      testProject: '**/*.Tests.csproj'
+      testResultsFile: 'results.xml'

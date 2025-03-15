@@ -1,0 +1,47 @@
+# STAGES organize pipeline into major sections, like Build/Test/Deploy
+# Stages can run sequentially or in parallel, and we can define dependencies between them
+# Each Stage can have multiple jobs 
+
+# Key fields 
+# stage: name of the stage 
+# dependsOn: specifies dependencies between stages 
+# jobs: lists the jobs within the stage 
+# condition: allows conditional execution of the stage 
+
+###
+
+# example defining multiple stages
+stages:
+  - stage: Build
+    jobs:
+      - job: BuildJob
+        steps:
+          - script: echo "Building the project"
+  
+  - stage: Test
+    dependsOn: Build
+    jobs:
+      - job: TestJob
+        steps:
+          - script: echo "Running tests"
+
+# example parallel stages
+stages:
+  - stage: Build
+    jobs:
+      - job: BuildJob
+        steps:
+          - script: echo "Building"
+  
+  - stage: Deploy
+    dependsOn: Build
+    jobs:
+      - job: DeployJob
+        steps:
+          - script: echo "Deploying"
+  - stage: IntegrationTest
+    dependsOn: Build
+    jobs:
+      - job: IntegrationTestJob
+        steps:
+          - script: echo "Running integration tests"

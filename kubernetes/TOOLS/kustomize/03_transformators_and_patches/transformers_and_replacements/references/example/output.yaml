@@ -1,0 +1,14 @@
+apiVersion: animal/v1
+kind: AnimalPark
+metadata:
+  name: sample-ap # changed by `namePrefix`
+spec:
+  gorillaRef:
+    apiVersion: animal/v1
+    kind: Gorilla
+    name: sample-gg # changed by `nameReference`
+---
+apiVersion: animal/v1
+kind: Gorilla
+metadata:
+  name: sample-gg # changed by `namePrefix`

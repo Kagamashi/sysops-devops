@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-webhook-access-from-any
+  namespace: keda
+spec:
+  podSelector:
+    # same selector as keda-admission-webhooks Service
+    matchLabels:
+      app: keda-admission-webhooks
+  policyTypes:
+  - Ingress
+  ingress:
+  - ports:
+    - port: 9443  # https port (has to be container port)

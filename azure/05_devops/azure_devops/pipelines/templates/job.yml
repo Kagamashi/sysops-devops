@@ -1,0 +1,46 @@
+# In this example, a single job is repeated on three platforms. The job itself is specified only once.
+# File: jobs/build.yml
+
+parameters:
+  name: ''
+  pool: ''
+  sign: false
+
+jobs:
+
+- job: ${{ parameters.name }}
+  pool: ${{ parameters.pool }}
+  steps:
+
+  - script: npm install
+  - script: npm test
+
+  - ${{ if eq(parameters.sign, 'true') }}:
+    - script: sign
+
+---
+
+# File: azure-pipelines.yml
+
+jobs:
+
+- template: jobs/build.yml  # Template reference
+  parameters:
+    name: macOS
+    pool:
+      vmImage: 'macOS-latest'
+
+
+- template: jobs/build.yml  # Template reference
+  parameters:
+    name: Linux
+    pool:
+      vmImage: 'ubuntu-latest'
+
+
+- template: jobs/build.yml  # Template reference
+  parameters:
+    name: Windows
+    pool:
+      vmImage: 'windows-latest'
+    sign: true  # Extra step on Windows only

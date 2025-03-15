@@ -1,0 +1,7 @@
+
+# Transformers add changes across every Kubernetes resource that is part of Kustomize configuration.
+
+# CommonAnnotations
+# Kustomize automatically applies these annotations to each resource in the configuration 
+commonAnnotations:
+  annotation-key: annotation-value

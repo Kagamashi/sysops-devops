@@ -1,0 +1,30 @@
+
+# ALLOW ACCESS TO ADMIN PATHS FOR USERS WITH ADMIN ROLES
+# This policy allows users with an admin role in their JWT claim to access the /admin/* path.
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: admin-role-policy
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: my-service
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            requestPrincipals:
+              - "user@example.com"
+      to:
+        - operation:
+            methods:
+              - GET
+            paths:
+              - /admin/*
+      when:
+        - key: request.auth.claims[role]
+          values:
+            - admin
+
+---

@@ -1,0 +1,14 @@
+
+  authenticationRef:
+      name: {cluster-trigger-authentication-name}
+      kind: ClusterTriggerAuthentication
+
+--- 
+
+apiVersion: keda.sh/v1alpha1
+kind: ClusterTriggerAuthentication
+metadata:
+  name: {cluster-trigger-authentication-name}
+spec:
+  # As in TriggerAuthentication..
+

@@ -1,0 +1,116 @@
+# Sidecar
+
+# Controls the behavior of the Envoy proxy deployed alongside an application service in the mesh. 
+# By default, Istio injects an Envoy sidecar proxy into every pod, which intercepts and manages traffic between services. 
+
+# Key Features:
+#   Traffic Scope: Limit the services that the sidecar proxy can communicate with, reducing the overhead of routing and service discovery.
+#   Outbound Traffic Control: Define which services or external destinations the sidecar proxy can communicate with.
+#   Ingress and Egress Traffic: Manage ingress (inbound) and egress (outbound) traffic for a specific pod, enabling fine-grained control over network policies.
+
+# - Manual Sidecar Injection: In manual sidecar injection, the Istio **Envoy proxy** sidecar is added to the Kubernetes pod using a command before deploying the application. This is done by modifying the pod's YAML configuration to include the sidecar container specification.
+# - Automatic Sidecar Injection: Automatic injection happens via Istio’s admission controller webhook. When enabled, every pod within a specific namespace (or with certain annotations) automatically gets the Envoy sidecar added to it upon deployment, without manually modifying the pod specification.
+#  Automatic injection can be enabled by labeling a namespace with `istio-injection=enabled` or pod with `sidecar.istio.io/inject="true"`.
+
+---
+
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: my-sidecar-config
+  namespace: default             # Namespace where this configuration applies
+spec:
+  workloadSelector:              # Apply the Sidecar configuration to specific workloads
+    labels:
+      app: my-service            # Only apply to pods with this label
+  ingress:                       # Manage inbound traffic to the sidecar
+    - port:
+        number: 8080             # Incoming traffic port
+        protocol: HTTP           # Protocol for incoming traffic
+        name: http
+      defaultEndpoint: 127.0.0.1:8080 # Forward traffic to this internal endpoint
+  egress:                        # Manage outbound traffic from the sidecar
+    - hosts:
+        - "default/*"            # Allow traffic to services in the "default" namespace
+        - "external.com"         # Allow traffic to an external host
+      port:
+        number: 443
+        protocol: TLS            # Outbound traffic via TLS
+      captureMode: IPTABLES      # Define how traffic is captured (IPTABLES || NONE)
+  outboundTrafficPolicy:         # Control outbound traffic policy (ALLOW_ANY || REGISTRY_ONLY)
+    mode: ALLOW_ANY              # Allow traffic to any external service by default
+
+---
+
+# workloadSelector: Specifies the workloads (pods) to which this Sidecar configuration applies. You define it by matching labels on pods (e.g., app: my-service). If not specified, the configuration applies to all pods in the namespace.
+# ingress: Controls how inbound traffic is handled by the Envoy proxy. You can define which ports the sidecar listens on and how the traffic should be forwarded to the application.
+# defaultEndpoint: Specifies the local service to which the incoming traffic should be routed (e.g., 127.0.0.1:8080 for HTTP traffic).
+# egress: Controls how outbound traffic is managed. You can specify the hosts or namespaces to which outbound traffic is allowed.
+#   hosts: Defines the destinations for outbound traffic. It can be a combination of internal services (default/*) and external hosts (external.com).
+#   captureMode: Specifies how traffic is intercepted. IPTABLES (default) intercepts traffic at the kernel level, while NONE bypasses Envoy for outbound traffic.
+# outboundTrafficPolicy: Controls how outbound traffic to unknown destinations is handled:
+#   ALLOW_ANY: Allows the service to communicate with any external service, even if it is not explicitly listed.
+#   REGISTRY_ONLY: Limits outbound traffic to services that are explicitly defined in the service registry (i.e., internal services or those registered via ServiceEntry).
+
+---
+
+# RESTRICT OUTBOUND TRAFFIC TO SPECIFIC NAMESPACE 
+# This configuration allows the sidecar to communicate only with services in the default namespace and no external services. 
+# This can reduce overhead and improve security by limiting the scope of service discovery and communication.
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: restrict-egress
+  namespace: default
+spec:
+  workloadSelector:
+    labels:
+      app: my-service
+  egress:
+    - hosts:
+        - "default/*"      # Allow outbound traffic only to services in the default namespace
+  outboundTrafficPolicy:
+    mode: REGISTRY_ONLY    # Disallow traffic to any external service unless explicitly defined
+
+---
+
+# ALLOW OUTBOUND TRAFFIC TO EXTERNAL SERVICE 
+# This configuration allows outbound traffic to both internal services in the default namespace and an external API at api.external.com over HTTPS.
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: allow-external-api
+  namespace: default
+spec:
+  workloadSelector:
+    labels:
+      app: my-service
+  egress:
+    - hosts:
+        - "default/*"           # Internal services in the default namespace
+        - "api.external.com"    # External service (API)
+      port:
+        number: 443             # Use HTTPS for the external service
+        protocol: TLS
+  outboundTrafficPolicy:
+    mode: ALLOW_ANY             # Allow traffic to any external service
+
+---
+
+# ISOLATE A SERVICE FROM THE REST OF THE MESH 
+# This configuration isolates a service, restricting it to communicate only with itself. 
+# This is useful for scenarios where you want a service to be self-contained and not interact with other services in the mesh.
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: isolate-service
+  namespace: default
+spec:
+  workloadSelector:
+    labels:
+      app: my-service
+  egress:
+    - hosts:
+        - "127.0.0.1/*"          # Allow traffic only to the local service
+  outboundTrafficPolicy:
+    mode: REGISTRY_ONLY          # Disallow any external traffic

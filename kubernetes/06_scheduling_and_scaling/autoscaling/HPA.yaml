@@ -1,0 +1,41 @@
+apiVersion: autoscaling/v2beta2  # API version for HPA
+kind: HorizontalPodAutoscaler    # Defines this resource as an HPA
+metadata:
+  name: my-app-hpa               # Name of the HPA
+  namespace: my-namespace
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment             # The resource type being scaled (Deployment, ReplicaSet, etc.)
+    name: my-app-deployment      # Name of the deployment being autoscaled
+  minReplicas: 2                 # Minimum number of Pods to maintain
+  maxReplicas: 10                # Maximum number of Pods that can be created
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu                  # Autoscaling based on CPU usage
+      target:
+        type: Utilization
+        averageUtilization: 50   # Target average CPU utilization (50%)
+
+# scaleTargetRef: Defines the resource that HPA scales, such as a Deployment or ReplicaSet.
+# minReplicas and maxReplicas: Set the lower and upper bounds for the number of Pods that can be created by the autoscaler.
+# metrics: Specifies the metrics used to trigger autoscaling. In this example, HPA is scaling based on average CPU utilization, targeting 50% usage across all Pods.
+
+--- 
+
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: my-app-vpa                # Name of the VPA
+  namespace: my-namespace
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment               # The resource type being autoscaled (e.g., Deployment)
+    name: my-app-deployment        # Name of the deployment being scaled
+  updatePolicy:
+    updateMode: "Auto"             # Auto applies recommendations automatically; "Off" or "Initial" modes are also available
+
+# targetRef: Specifies the resource to be vertically autoscaled (e.g., a Deployment or ReplicaSet).
+# updatePolicy: Controls how VPA applies changes to the resource requests/limits. Auto applies changes automatically, while Off only provides recommendations without applying them.

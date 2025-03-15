@@ -1,0 +1,38 @@
+
+# RequestAuthentication defines what request authentication methods are supported by a workload
+
+# Istio supports JSON Web Token (JWT) authentication using RequestAuthentication policies, 
+# which allow workloads to verify JWTs issued by external identity providers.
+
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: jwt-auth
+  namespace: default
+spec:
+  selector: # where to apply request authentication policy
+    matchLabels:
+      app: my-service # applies only to my-service workload in default namespace
+  targetRefs: # can be set instead of selector
+      kind: Gateway
+      group: gateway.networking.k8s.io
+  jwtRules:
+    - issuer: "https://auth.example.com" # verifies JWTs issued by
+      jwksUri: "https://auth.example.com/.well-known/jwks.json" # uses JSON Web Key Set (JWKS) endpoint for token validation
+
+---
+
+# jwtRules:
+#   issuer: https://foobar.auth0.com # issuer that issued the JWT 
+#   audiences: 
+#   - bookstore_android.apps.example.com # audiences that are allowed to access
+#   - bookstore_web.apps.example.com
+#   jwksUri: https://www.googleapis.com/oauth2/v1/certs # URL of providers public key set to validate signature of JWT
+#   jwks: JSON Web Key Set of public keys to validate # one of jwkUri or jwks can be set
+#   fromHeaders: # locations from which JWT is expected
+#   - name: x-jwt-assertion
+#     prefix: "Bearer "
+#   fromParams: # query paremetrs from which JWT is expected
+#   - "my_token"
+#   from_cookies: # cookie names from which JWT is expected
+#   - auth-token

@@ -1,0 +1,31 @@
+
+# ANNOTATIONS specific to AzureLoadBalancer integration with AKS cluster
+# this setup is used when:
+# - exposing services internally within a private network (for backend services, databases, internal APIs)
+# - avoiding public exposure for security reasons
+# - ensuring a predictable private IP for the service
+
+# Istio Ingress Gateway (which acts as entry point for external traffic) can be exposed via internal Load Balancer instead of public one.
+# These annotations can be applied to Istio IngressGateway service to ensure it gets a static private IP inside a specific subnet.
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-ipv4: 10.256.214.32
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "snet_lb_vnet_dh_01_tn"
+  name: istio-ingressgateway
+  namespace: istio-system
+
+# service.beta.kubernetes.io/azure-load-balancer-ipv4:
+#   - This annotation specifies a static private IP address (10.255.213.36) to be assigned to the Azure Load Balancer for the Service.
+#   - If this annotation is not set, Azure assigns a dynamic IP from the subnet.
+
+# service.beta.kubernetes.io/azure-load-balancer-internal:
+#   - This ensures that the Load Balancer is internal (private) rather than public.
+#   - A public Load Balancer would expose the service to the internet, but this ensures it's only reachable within the VNET.
+
+# service.beta.kubernetes.io/azure-load-balancer-internal-subnet:
+#   - This annotation specifies the subnet name (snet_akk1_lb_vnet_dh_01_tn) within the Virtual Network (VNET) where the Load Balancer’s private IP should be assigned.
+#   - This is important when you want the Load Balancer to reside in a specific subnet, for example, one with custom NSGs, UDRs, or a well-defined CIDR range.

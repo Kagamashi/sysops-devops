@@ -1,0 +1,45 @@
+
+# Simulating failures for resilience testing
+
+# - Delays: Introduce artificial delays to simulate network latency.
+# - Abort/Errors: Simulate HTTP or gRPC errors to test how services handle failed requests.
+
+# simulating a DELAY
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: my-service
+spec:
+  hosts:
+    - my-service
+  http:
+    - fault:
+        delay:
+          percent: 50         # 50% of requests will be delayed
+          fixedDelay: 5s      # Delay of 5 seconds
+      route:
+        - destination:
+            host: my-service
+            subset: v1
+
+---
+
+# Abort Request : simulating an ERROR
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: my-service
+spec:
+  hosts:
+    - my-service
+  http:
+    - fault:
+        abort:
+          percent: 10           # 10% of requests will return an error
+          httpStatus: 500       # Return HTTP 500 error code
+      route:
+        - destination:
+            host: my-service
+            subset: v1
+
+---

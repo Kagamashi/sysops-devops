@@ -1,0 +1,156 @@
+# Ingress
+# API object that manages external access to services within a cluster, typically HTTP and HTTPS traffic.
+# Ingress allows to define rules for routing traffic based on hostnames or paths and also can handle SSL/TLS termination.
+# Acts as gateway that sits between external traffic and internal services - providing feature-rich alternative to Services like NodePort or LoadBalancer.
+
+# Key features:
+#   - HTTP and HTTPS routing 
+#   - single centralized entry point for multiple services 
+#   - Path-based routing: traffic can be routed based on URL (e.g. /app1 and /app2) allowing multiple services to be hosted on the same domain 
+#   - Host-based routing: route traffic to different services based on requested hostname 
+#   - built-in load balancing for HTTP and HTTPS traffic to backend services 
+#   - supports SSL/TLS termination
+
+# Ingress controller: component that implements the Ingress resource 
+# Kubernetes itself doesn't provide Ingress Controller out of the box
+#   - NGINX Ingress Controller 
+#   - Traefik 
+#   - HAProxy 
+#   - Kong 
+#   - Istio (Envoy)
+
+# Ingress resource Types:
+#   - Basic Ingress: routes HTTP and HTTPS with simple rules 
+#   - TLS Ingress: supports HTTPS traffic by configuring SSL/TLS certificates 
+#   - Advanced Ingress: includes more advanced features such as URL rewriting, redirection, rate limiting, access control
+
+# Key concepts:
+#   - Annotations: provide additional configuration options specific to Ingress controller we are using
+#       NGINX: nginx.ingress.kubernetes.io/rewrite-target to rewrite URL paths.
+#       Traefik: traefik.ingress.kubernetes.io/rule-type to define how rules are interpreted.
+#   - TLS: allows to serve traffic securely via HTTPS - can be configured by specifying tls block 
+#   - Path Matching:
+#       Prefix: matches prefix of URL path. For example if path is /app it will match /app, /app/1, /app/status etc. 
+#       Exact: matches the exact URL path. For example if path is /app it will match /app, but not /app/1 
+#   - Ingress Controller: ingress resources require Ingress Controller to functions. It must be deployed in the cluster to process ingress rules. 
+#   - Backend Services: each ingress rule routes traffic to a Service which exposes one or more Pods 
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress                     
+metadata:
+  name: example-ingress            # Name of the Ingress
+  namespace: my-namespace          # Namespace for the Ingress
+  annotations:                     # Optional annotations for Ingress controller behavior
+    nginx.ingress.kubernetes.io/rewrite-target: /             # allows to rewrite the incoming URL to different path in backend service
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"    # redirect all HTTP traffic to HTTPS
+    nginx.ingress.kubernetes.io/custom-http-errors: "404,500,503"  # serve custom error pages for HTTP status codes
+spec:
+  rules:
+  - host: example.com              # Hostname to route traffic (e.g., example.com)
+    http:
+      paths:
+      - path: /                    # URL path to match for routing traffic
+        pathType: Prefix           # Type of path matching (Prefix or Exact)
+        backend:
+          service:
+            name: my-service       # Name of the Service to route traffic to
+            port:
+              number: 80           # Port on the Service to route traffic to
+
+---
+
+# apiVersion and kind: The API version for Ingress is networking.k8s.io/v1, and the resource type is Ingress.
+# metadata: Contains the name of the Ingress and optional annotations. Annotations can customize the behavior of the Ingress controller (e.g., nginx.ingress.kubernetes.io/rewrite-target for URL rewriting).
+# spec.rules: Defines the rules for routing traffic based on hostnames and paths. In this example, traffic to example.com is routed to the my-service Service on port 80.
+# paths: Defines the URL path to match (e.g., /). The pathType field can be:
+#   Prefix: Matches a prefix of the URL path.
+#   Exact: Matches the exact URL path.
+
+--- 
+
+# Example of Ingress with TLS Termination
+# TLS enabled for example.com hostname using TLS secret; traffic is routed to backend service over port 443
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tls-ingress
+  namespace: my-namespace
+spec:
+  tls:
+  - hosts:
+    - example.com                   # Domain name for TLS
+    secretName: tls-secret          # Kubernetes Secret containing the TLS certificate and key
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: my-secure-service
+            port:
+              number: 443           # Service port to route traffic to
+
+---
+
+# Example of Ingress with Multiple Services and Paths
+# traffic to example.com/app1 is routed to my-app1-service and traffic to example.com/app2 is routed to my-app2-service
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: multi-service-ingress
+  namespace: my-namespace
+spec:
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /app1               # Traffic to /app1 is routed to my-app1-service
+        pathType: Prefix
+        backend:
+          service:
+            name: my-app1-service
+            port:
+              number: 80
+      - path: /app2               # Traffic to /app2 is routed to my-app2-service
+        pathType: Prefix
+        backend:
+          service:
+            name: my-app2-service
+            port:
+              number: 80
+
+---
+
+# Example of Ingress with Host-Based Routing
+# traffic to app1.example.com is routed to my-app1-service, and traffic to app2.example.com is routed to my-app2-service
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: host-based-ingress
+  namespace: my-namespace
+spec:
+  rules:
+  - host: app1.example.com        # Traffic for app1.example.com is routed to my-app1-service
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: my-app1-service
+            port:
+              number: 80
+  - host: app2.example.com        # Traffic for app2.example.com is routed to my-app2-service
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: my-app2-service
+            port:
+              number: 80

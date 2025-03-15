@@ -1,0 +1,38 @@
+# argocd-tls-cm
+
+# Configures TLS settings for securing communication between ArgoCD components and external services (e.g. repositories, clusters) 
+#   - custom/self-signed certificates
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-tls-cm  # ConfigMap for managing trusted TLS certificates
+  namespace: argocd  # The namespace where ArgoCD is installed
+data:
+  # Each entry is the base64-encoded PEM certificate of a trusted certificate authority (CA)
+  
+  # Example 1: GitHub Enterprise Custom CA
+  github-enterprise.com: |  # Hostname of the service (Git repository, Helm repo, etc.)
+    -----BEGIN CERTIFICATE-----
+    MIIDXTCCAkWgAwIBAgIJAIBf...  # Base64-encoded PEM certificate
+    -----END CERTIFICATE-----
+  
+  # Example 2: Self-Hosted GitLab CA
+  gitlab.mycompany.com: |  # The hostname of the GitLab instance
+    -----BEGIN CERTIFICATE-----
+    MIIDXTCCAkWgAwIBAgIJAIBf...  # The custom CA certificate for GitLab
+    -----END CERTIFICATE-----
+    
+  # Example 3: Private Helm Repository CA
+  helm.mycompany.com: |  # The hostname of the Helm repository
+    -----BEGIN CERTIFICATE-----
+    MIIDXTCCAkWgAwIBAgIJAIBf...  # The custom CA certificate for the Helm repository
+    -----END CERTIFICATE-----
+
+---
+
+# metadata.name: The name of the ConfigMap, which is always argocd-tls-cm for managing trusted TLS certificates in ArgoCD.
+# metadata.namespace: The namespace where ArgoCD is installed (typically argocd).
+# data: This section contains the actual TLS certificates. Each entry in this section is:
+# <hostname>: The hostname of the service (e.g., Git repository, Helm repository) that uses the custom or self-signed certificate. ArgoCD will use this certificate when interacting with that specific hostname.
+# <certificate>: The base64-encoded PEM certificate for the service's certificate authority (CA). This is the CA that ArgoCD will trust when interacting with the specified service.

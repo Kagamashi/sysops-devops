@@ -1,0 +1,86 @@
+# ApplicationSet
+
+# Resource that enables automated creation and management of multiple applications.
+# It's particularly useful for managing deployments across multiple clusters, environments or with varying parameters.
+# Instead of defining each ArgoCD app individually, the ApplicationSet controller generates and manages multiple applications dynamically based on specific parameters or generators (such as Git repository contents, cluster lists, etc.)
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet  # Defines the ArgoCD ApplicationSet resource
+metadata:
+  name: my-applicationset  # Name of the ApplicationSet
+  namespace: argocd  # Namespace where ArgoCD is installed
+spec:
+
+  # Template for the ArgoCD applications to be generated
+  template:
+    metadata:
+      name: '{{name}}'  # Template for the application name (dynamically filled in by the generator)
+    spec:
+      project: default  # Project to which all generated applications will belong
+      source:
+        repoURL: https://github.com/my-org/my-repo  # The Git repository URL
+        targetRevision: HEAD  # The branch, tag, or commit to track
+        path: '{{path}}'  # Template for the path to the manifests (can vary per application)
+      destination:
+        server: '{{server}}'  # Kubernetes API server URL (filled by cluster generator or other source)
+        namespace: '{{namespace}}'  # Namespace where the application will be deployed
+      syncPolicy:
+        automated:  # Enable automatic syncing
+          prune: true  # Automatically prune resources no longer defined in Git
+          selfHeal: true  # Automatically reapply resources if they drift from the desired state
+
+  # Generator section that defines how multiple applications will be generated
+  generators:
+    # List generator: generates applications based on a static list of parameters
+    - list:
+        elements:
+          - name: app1  # First application
+            namespace: app1-namespace
+            path: manifests/app1
+            server: https://kubernetes.default.svc
+          - name: app2  # Second application
+            namespace: app2-namespace
+            path: manifests/app2
+            server: https://kubernetes.default.svc
+
+    # Cluster generator: generates applications for each cluster in the list
+    - clusterDecisionResource:
+        configMapRef: cluster-decision-configmap  # Cluster decision configmap reference
+        labelSelector:
+          matchLabels:
+            environment: prod  # Select clusters labeled as 'prod'
+
+    # Git generator: creates applications based on directories in a Git repo
+    - git:
+        repoURL: https://github.com/my-org/my-repo  # The Git repository containing the manifests
+        revision: HEAD  # The branch, tag, or commit to track
+        directories:
+          - path: apps/*  # Generate an application for each directory under 'apps/'
+
+  # SyncPolicy for the ApplicationSet itself (not individual applications)
+  syncPolicy:
+    preserveResourcesOnDeletion: false  # If true, it won’t delete the resources when the ApplicationSet is deleted
+
+---
+
+# metadata.name: The name of the ApplicationSet.
+# metadata.namespace: The namespace where ArgoCD and the ApplicationSet controller are running, typically argocd.
+# spec.template.metadata.name: The name for each generated application. This field often uses variables provided by the generator.
+# spec.template.source.repoURL: The Git repository containing the application manifests.
+# spec.template.source.targetRevision: Specifies the branch, tag, or commit SHA to track in the repository.
+# spec.template.source.path: The path to the Kubernetes manifests within the repository. This is dynamically set by the generator (for example, for each folder under manifests/).
+# spec.template.destination.server: The Kubernetes API server where the application will be deployed. This is often dynamically set, especially in multi-cluster scenarios.
+# spec.template.destination.namespace: The namespace in the target cluster where the resources will be deployed.
+# spec.template.syncPolicy.automated: Automates syncing and pruning for the applications, ensuring they stay in sync with Git.
+# a. List Generator:
+# list: A static list of parameter values, each of which generates an application.
+# elements: Each entry in the list defines an individual application’s parameters (such as name, namespace, path, and Kubernetes server).
+# b. Cluster Generator:
+# clusterDecisionResource: Generates an application for each cluster based on a cluster resource list (like from ConfigMaps or labels).
+# configMapRef: Refers to a ConfigMap containing cluster details.
+# labelSelector: Filters clusters based on labels (e.g., only deploy to clusters with the label environment: prod).
+# c. Git Generator:
+# git: Generates applications from a Git repository based on the structure of directories in the repo.
+# repoURL: The URL of the Git repository where manifests are stored.
+# directories: Specifies how directories are used to generate applications. For example, apps/* would generate an application for each subdirectory under apps/.
+# syncPolicy.preserveResourcesOnDeletion: Controls whether the generated applications' resources are deleted when the ApplicationSet itself is deleted. If set to true, ArgoCD will not delete the resources created by the applications when the ApplicationSet is deleted.

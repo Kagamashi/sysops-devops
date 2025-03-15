@@ -1,0 +1,22 @@
+
+# ClusterRoleBinding
+# Grants a ClusterRole to a user, group, or ServiceAccount at the cluster level.
+# ClusterRoleBindings allow cluster-wide permissions for subjects, meaning the permissions apply to all namespaces or cluster-wide resources.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding               # Defines this resource as a ClusterRoleBinding
+metadata:
+  name: cluster-admin-binding          # Name of the ClusterRoleBinding
+subjects:                              # Users, groups, or ServiceAccounts receiving the permissions
+- kind: User                           # The kind of subject (User, Group, or ServiceAccount)
+  name: jane                           # Username receiving cluster-wide permissions
+  apiGroup: rbac.authorization.k8s.io  # API group for RBAC
+roleRef:                               # Reference to the ClusterRole
+  kind: ClusterRole                    # The type of role being bound (Role or ClusterRole)
+  name: cluster-admin-role             # Name of the ClusterRole to be granted
+  apiGroup: rbac.authorization.k8s.io  # API group for RBAC resources
+
+# subjects: Specifies the users, groups, or ServiceAccounts that receive the permissions granted by the ClusterRole.
+# roleRef: Refers to the ClusterRole being assigned to the subjects. This allows granting of cluster-wide permissions or permissions across namespaces.
+
+---

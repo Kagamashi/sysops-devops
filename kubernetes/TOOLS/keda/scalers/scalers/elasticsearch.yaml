@@ -1,0 +1,19 @@
+
+# elasticsearch
+# scales based on result of an elasticsearch search template query or elasticsearch query
+
+triggers:
+  - type: elasticsearch
+    metadata:
+      addresses: "http://localhost:9200"
+      username: "elastic"
+      passwordFromEnv: "ELASTIC_PASSWORD"
+      index: "my-index"
+      searchTemplateName: "my-search-template-name"
+      query: "my-query"
+      parameters: "param1:value1;param2:value2"
+      valueLocation: "hits.total.value"
+      targetValue: "1.1"
+      activationTargetValue: "5.5"
+
+---

@@ -1,0 +1,61 @@
+# Namespace 
+# Used to divide cluster resources between multiple users, teams or environments. 
+
+# - Resource Quotas to enforce limits on number of resources (Pods, Services etc..) and amount of CPU/memory used within the Namespace
+# - LimitRange to enforce default resource requests and limits for containers
+# - If namespace is not specified, Kubernetes uses default
+
+# Built-in Namespaces:
+#   default:         The default Namespace used when no Namespace is specified.
+#   kube-system:     Namespace for resources created by Kubernetes itself (e.g., system components like the API server, controller manager, etc.).
+#   kube-public:     A special Namespace that is readable by all users (including unauthenticated users), typically used for public resources.
+#   kube-node-lease: Namespace used for node lease objects to determine node health.
+
+# Not all resources are namespaced:
+#   - Nodes
+#   - PersistentVolumes 
+#   - ClusterRoles 
+#   - ClusterRoleBindings
+#   - Namespaces themselves
+
+--- 
+
+apiVersion: v1
+kind: Namespace  # Defines this resource as a Namespace
+metadata:
+  name: my-namespace  # Name of the Namespace
+  labels:             # Optional labels for organizing resources
+    environment: dev  # Example label to indicate environment type
+
+--- 
+
+# ResourceQuota
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: my-quota
+  namespace: my-namespace     # Specifies which Namespace the quota applies to
+spec:
+  hard:
+    pods: "10"                # Limit the number of Pods
+    requests.cpu: "4"         # Total CPU requested cannot exceed 4 cores
+    requests.memory: "16Gi"   # Total memory requested cannot exceed 16Gi
+    limits.cpu: "8"           # Total CPU limit for all Pods cannot exceed 8 cores
+    limits.memory: "32Gi"     # Total memory limit for all Pods cannot exceed 32Gi
+
+---
+# LimitRange
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: my-limit-range
+  namespace: my-namespace    # Specifies the Namespace
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "500m"          # Default CPU limit per container
+        memory: "1Gi"        # Default memory limit per container
+      defaultRequest:
+        cpu: "250m"          # Default CPU request per container
+        memory: "512Mi"      # Default memory request per container

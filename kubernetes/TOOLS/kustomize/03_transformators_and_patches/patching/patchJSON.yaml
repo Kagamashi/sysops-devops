@@ -1,0 +1,53 @@
+
+# JSON Patches [RFC 6902]
+# use for precise modifications (eg removing an entry)
+
+# - allows precise changes by defining an array of operations (add, remove, replace)
+# - more explicit and useful for fine-grained modifications
+# - requires specifying the exact JSON path of the field being modified
+
+# **deployment.yaml**
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: my-container
+        image: nginx:1.14
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+
+---
+
+# **kustomization.yaml**
+patchesJson6902:
+  - target:
+      version: apps/v1
+      kind: Deployment
+      name: my-app
+    path: patch.json
+
+---
+
+# **patch.json**
+[
+  {
+    "op": "replace",
+    "path": "/spec/template/spec/containers/0/image",
+    "value": "nginx:1.16"
+  },
+  {
+    "op": "add",
+    "path": "/spec/replicas",
+    "value": 5
+  }
+]

@@ -1,0 +1,15 @@
+
+# Waves allows to specify that certain resources should be healthy before subsequent resources are synced
+
+# When ArgoCD starts a sync it orders resources in following precedence:
+# - the phase: pre-sync, sync, post-sync
+# - the wave they are in (lower values first for create/update, and higher values first for delete)
+# - by kind (namespaces first -> kubernetes resources -> custom resources)
+# - by name
+
+# by default every resource have sync-wave set to 0
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+
+# It repeats this process until all phases and waves are in-sync and healthy.

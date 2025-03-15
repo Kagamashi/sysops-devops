@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-metrics-server-access-from-any
+  namespace: keda
+spec:
+  podSelector:
+    # same selector as keda-metrics-apiserver Service
+    matchLabels:
+      app: keda-metrics-apiserver
+  policyTypes:
+  - Ingress
+  ingress:
+  - ports:
+    - port: 6443  # https port (has to be container port)

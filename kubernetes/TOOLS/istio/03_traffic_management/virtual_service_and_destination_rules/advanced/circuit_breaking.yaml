@@ -1,0 +1,26 @@
+
+# Resilience feature in Istio that protects services from cascading failures by limiting the amount of traffic sent to a struggling service.
+# When a service becomes overwhelmed or starts failing, Istio circuit breaker limits request to that service, helping it recover and preventing system-wide issues.
+
+# - Connection Limits: Control the maximum number of connections to a service.
+# - Request Limits: Set a limit on the number of concurrent requests allowed to a service.
+# - Retries and Failover: Automatically retry failed requests or route traffic to healthy instances if a circuit is "open."
+
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: circuit-breaker
+spec:
+  host: my-service
+  trafficPolicy:
+    outlierDetection: # circuit_breaking
+      consecutiveErrors: 5   # Number of consecutive errors to trip the circuit
+      interval: 10s          # Time window for checking errors
+      baseEjectionTime: 30s  # Time a service instance is ejected after failing
+      maxEjectionPercent: 50 # Max percentage of instances ejected at a time
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 100 # Max pending requests
+        maxRequestsPerConnection: 10 # Max requests per connection
+
+---

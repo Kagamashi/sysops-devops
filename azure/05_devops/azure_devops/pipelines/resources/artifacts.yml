@@ -1,0 +1,25 @@
+# ARTIFACTS are the files or packages that a pipeline creates and apsses between stages, jobs, or pipelines.
+# They can include build outputs, binaries, deployment packages or anything else generated during the pipeline
+
+# Key types of artifacts
+# Build Artifacts: files created during the build process (e.g. binaries, ZIP files)
+# Pipeline Artifacts: lightweight artifacts shared between pipelines or stages
+# Public and Download: tasks used to publish and retrieve artifacts in pipelines 
+
+# Important fiels 
+# publish: publishes artifacts from source directory
+# artifact: name of the artifact 
+# download: downloads artifacts published from another stage or pipeline 
+
+# Artifacts can be also downloaded from other pipelines using resources
+
+###
+
+steps:
+  - publish: $(Build.ArtifactStagingDirectory)
+    artifact: drop
+
+# example downloading an artifact
+steps:
+  - download: current
+    artifact: drop

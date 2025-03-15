@@ -1,0 +1,7 @@
+
+# Used to modify container images without editing base manifests.
+
+images:
+  - name: nginx
+    newName: acrtestnonprod.azurecr.io/nginx/nginx
+    newTag: 1.21.0

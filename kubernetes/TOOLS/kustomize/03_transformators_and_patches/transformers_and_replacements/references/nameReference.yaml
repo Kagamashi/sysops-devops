@@ -1,0 +1,15 @@
+
+https://github.com/kubernetes-sigs/kustomize/tree/master/examples/transformerconfigs#builtin-namereference
+
+---
+
+# used to tie a target resource name to a list of other resources 'referrers' names
+# once tied the referrers names will change alongside the target name via transformers like namePrefix and nameSuffix
+
+# should be written in configurations file not directly in kustomization.yaml
+
+nameReference:
+  - kind: Gorilla
+    fieldSpecs:
+      - kind: AnimalPark
+        path: spec/gorillaRef/name

@@ -1,0 +1,142 @@
+# Telemetry
+
+# Configuration resource that allows you to define how metrics, logging, and tracing are generated and collected for workloads within a service mesh.
+
+# Hierarchy of Configuration:
+#   Workload-specific: Configuration applies to specific workloads selected via labels.
+#   Namespace-specific: Configuration applies to all workloads in a specific namespace.
+#   Root namespace: Global configuration for all workloads in the mesh.
+
+# Metrics, Logging, and Tracing Customization:
+#   Metrics: Control which metrics are collected, customize tags, and enable/disable specific metrics.
+#   Tracing: Configure the sampling rate, specify trace providers, and add custom tags to traces.
+#   Logging: Control access logging behavior, configure log formats, and decide what gets logged.
+
+---
+
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: my-telemetry-config       # Name of the Telemetry resource
+  namespace: default              # Namespace where this telemetry config applies
+spec:
+  selector:                       # (Optional) Apply to specific workloads
+    matchLabels:
+      app: my-service             # Apply this telemetry config to workloads with this label
+
+  metrics:                        # Metrics configuration
+    - providers:                  # Define where the metrics are sent
+        - name: prometheus        # Name of the provider (e.g., Prometheus)
+      overrides:                  # Customization of metrics collection
+        - match:                  # Specify metric to customize
+            metric: request_count # Example metric: request count
+          tagOverrides:
+            source_workload: drop # Remove the "source_workload" label from this metric
+          disabled: false         # Enable or disable this specific metric
+
+  logging:                        # Logging configuration
+    providers:
+      - name: stackdriver          # Example log provider (Stackdriver for Google Cloud)
+    overrides:                    # Customize logs
+      - match:
+          message: connection_terminated # Log message to customize
+        outputFormat: JSON         # Format the logs in JSON
+        disabled: false            # Enable logging for this specific event
+
+  tracing:                        # Tracing configuration
+    providers:
+      - name: jaeger               # Specify tracing provider (e.g., Jaeger)
+    customTags:                    # Define custom tags to include in traces
+      environment:
+        literal: production        # Example custom tag (can also be from headers, etc.)
+    sampling: 100                  # Set sampling rate (100% in this case)
+
+---
+
+# selector: Optional. Defines which workloads the telemetry configuration applies to by matching labels. If no selector is specified, the configuration applies to all workloads in the same namespace.
+# metrics: Configuration for metrics collection, including providers (e.g., Prometheus), tag overrides, and whether specific metrics are enabled or disabled.
+# logging: Configuration for logging, including log providers (e.g., Stackdriver) and customization of log formats and messages.
+# tracing: Configuration for tracing, including trace providers (e.g., Jaeger), sampling rate, and custom tags.
+
+---
+
+# SAMPLING 10% TRAFFIC FOR TRACING 
+# This example configures the mesh to trace 10% of traffic for all workloads in the istio-system namespace.
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: mesh-default
+  namespace: istio-system
+spec:
+  tracing:
+    - randomSamplingPercentage: 10.00
+
+---
+
+# DISABLING TRACING FOR A SPECIFIC WORKLOAD
+# This example disables tracing for the foo workload in the bar namespace, but still allows trace context propagation.
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: foo-tracing
+  namespace: bar
+spec:
+  selector:
+    matchLabels:
+      service.istio.io/canonical-name: foo
+  tracing:
+    - disableSpanReporting: true
+
+---
+
+# CUSTOM TRACING PROVIDER FOR SPECIFIC WORKLOAD
+# This example uses an alternate Zipkin provider for tracing the foo workload in the baz namespace.
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: foo-tracing-alternate
+  namespace: baz
+spec:
+  selector:
+    matchLabels:
+      service.istio.io/canonical-name: foo
+  tracing:
+    - providers:
+        - name: "zipkin-alternate"
+      randomSamplingPercentage: 10.00
+
+---
+
+# DISABLING SERVER-SIDE METRICS FOR PROMETHEUS
+# This example disables all server-side metrics reporting for the entire mesh in the istio-system namespace.
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: mesh-default
+  namespace: istio-system
+spec:
+  metrics:
+    - providers:
+        - name: prometheus
+      overrides:
+        - match:
+            metric: ALL_METRICS
+            mode: SERVER
+          disabled: true
+
+---
+
+# ADDING CUSTOM TAGS TO TRACES 
+# This configuration adds a custom tag (my_new_foo_tag) with a literal value (foo) to traces in the mesh.
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: mesh-default
+  namespace: istio-system
+spec:
+  tracing:
+    - randomSamplingPercentage: 10.00
+      customTags:
+        my_new_foo_tag:
+          literal:
+            value: "foo"

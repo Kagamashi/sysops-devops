@@ -1,0 +1,126 @@
+# ServiceEntry
+
+# When you need to access services outside the mesh (e.g., external APIs or legacy services), 
+# you use a ServiceEntry to register these services, enabling control over their traffic, security, and policies like any internal service.
+# By default, Istio manages only the services that are part of the mesh. 
+
+# Key Features:
+#   External Services: Allows communication with services outside the service mesh (e.g., public APIs, databases).
+#   Internal Services: Defines services inside the mesh that might not be discoverable automatically (e.g., services running on VMs).
+#   Traffic Control: Apply the same Istio traffic management, security, and observability policies to external services as you would for internal services.
+#   Service Discovery: Makes external services discoverable and manageable by Istio's service discovery mechanisms.
+
+---
+
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: external-api-entry
+  namespace: default         # Namespace where this entry applies
+spec:
+  hosts:                     # The DNS name(s) of the service
+    - api.external.com       # Hostname of the external service (can be FQDN or wildcard)
+  location: MESH_EXTERNAL    # Service is external to the mesh (MESH_INTERNAL for internal services)
+  ports:                      # Define the ports for the service
+    - number: 80              # Port number for HTTP traffic
+      name: http              # Name of the port (must be unique within the service entry)
+      protocol: HTTP          # Protocol used by the service (e.g., HTTP, HTTPS, TCP)
+  resolution: DNS             # How the service's IP addresses are resolved (DNS || STATIC)
+  endpoints:                  # Optional list of endpoints for the service (when resolution is STATIC)
+    - address: 192.168.1.10   # IP address of the endpoint
+      ports:
+        http: 80              # Map port names to actual numbers
+  addresses:                  # Optional list of IP ranges associated with the service
+    - 192.168.1.0/24          # Define the CIDR range for the service if applicable
+  exportTo:                   # Optional: control visibility of the service entry to other namespaces
+    - "*"                     # "*" means the service is visible to all namespaces
+  subjectAltNames:            # Optional: list of SANs to authenticate the service using mTLS
+    - "spiffe://api.external.com"  
+  trafficPolicy:               # Optional: configure traffic policies for the external service
+    loadBalancer:
+      simple: ROUND_ROBIN      # Load balancing strategy (e.g., ROUND_ROBIN, LEAST_CONN)
+    tls:
+      mode: SIMPLE             # Configure TLS settings for the service (DISABLE, SIMPLE, ISTIO_MUTUAL)
+
+---
+
+# hosts: The hostname(s) for the service being defined. For external services, this will typically be the FQDN of the external API or service (e.g., api.external.com).
+# location: Specifies whether the service is internal (MESH_INTERNAL) or external (MESH_EXTERNAL) to the mesh.
+#   EXTERNAL for services outside the mesh, like external APIs, or MESH_INTERNAL for services that are part of the internal infrastructure but need manual registration.
+# ports: Defines the ports on which the service communicates. Each port must be named and associated with the correct protocol (e.g., HTTP, HTTPS, TCP).
+# resolution: Specifies how the service's IP addresses are resolved. This can be:
+#   DNS: Resolve the IP addresses using DNS (common for external services).
+#   STATIC: Manually specify IP addresses for services (useful for services with static IPs).
+# endpoints: (Optional) Specifies a list of static endpoints (IP addresses) for the service when using STATIC resolution. Each endpoint can define specific ports if needed.
+# addresses: (Optional) Specifies the IP ranges (CIDR blocks) associated with the service. This is typically used when working with legacy services or external services behind certain IP ranges.
+# exportTo: (Optional) Controls whether this ServiceEntry is exported to other namespaces. By default, it is only visible in its own namespace, but you can make it available to other namespaces by setting exportTo: "*".
+# subjectAltNames: (Optional) List of Subject Alternative Names (SANs) for mTLS authentication. This is useful when you want to authenticate external services using their certificates in mTLS communication.
+# trafficPolicy: (Optional) Defines traffic policies for the service, such as load balancing strategies or TLS settings. This allows you to control how traffic to the external service is handled.
+
+---
+
+# REGISTER AN EXTERNAL HTTP API 
+# This ServiceEntry defines an external service (e.g., a third-party API at api.external.com) that can be accessed via the mesh over HTTP.
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: external-api
+  namespace: default
+spec:
+  hosts:
+    - api.external.com
+  location: MESH_EXTERNAL
+  ports:
+    - number: 80
+      name: http
+      protocol: HTTP
+  resolution: DNS
+
+---
+
+# REGISTER STATIC IP DATABASE SERVICE 
+# This ServiceEntry registers a database running at a static IP (192.168.1.10) on port 5432. 
+# The mesh can now manage traffic and apply policies to this external service.
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: external-database
+  namespace: default
+spec:
+  hosts:
+    - db.external.com
+  location: MESH_EXTERNAL
+  ports:
+    - number: 5432
+      name: tcp
+      protocol: TCP
+  resolution: STATIC
+  endpoints:
+    - address: 192.168.1.10
+      ports:
+        tcp: 5432
+
+---
+
+# APPLY TRAFFIC POLICIES TO EXTERNAL SERVICES 
+# This ServiceEntry defines an external service with a load balancing policy and TLS settings. 
+# Requests to secure-api.external.com will use simple TLS, and traffic will be load-balanced using a round-robin strategy.
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: secure-api-entry
+  namespace: default
+spec:
+  hosts:
+    - secure-api.external.com
+  location: MESH_EXTERNAL
+  ports:
+    - number: 443
+      name: https
+      protocol: HTTPS
+  resolution: DNS
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN
+    tls:
+      mode: SIMPLE

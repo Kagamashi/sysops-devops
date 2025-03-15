@@ -1,0 +1,48 @@
+
+# Defines how KEDA should sclae our application and what the triggers are
+# for deployments, statefulSets or custom resources
+
+# - ideal for long running applications that require dynamic replica adjustments
+# - works well for event-driven microservices, web applications or API cosnumers
+
+# .spec.ScaleTargetRef : reference target resource
+
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {scaled-object-name}
+spec:
+  scaleTargetRef:
+    apiVersion:    {api-version-of-target-resource}  # Optional. Default: apps/v1
+    kind:          {kind-of-target-resource}         # Optional. Default: Deployment
+    name:          {name-of-target-resource}         # Mandatory. Must be in the same namespace as the ScaledObject
+    envSourceContainerName: {container-name}         # Optional. Default: .spec.template.spec.containers[0]
+  pollingInterval:  30                               # Optional. Default: 30 seconds
+  cooldownPeriod:   300                              # Optional. Default: 300 seconds
+  idleReplicaCount: 0                                # Optional. Default: ignored, must be less than minReplicaCount 
+  minReplicaCount:  1                                # Optional. Default: 0
+  maxReplicaCount:  100                              # Optional. Default: 100
+  fallback:                                          # Optional. Section to specify fallback options
+    failureThreshold: 3                              # Mandatory if fallback section is included
+    replicas: 6                                      # Mandatory if fallback section is included
+  advanced:                                          # Optional. Section to specify advanced options
+    restoreToOriginalReplicaCount: true/false        # Optional. Default: false
+    horizontalPodAutoscalerConfig:                   # Optional. Section to specify HPA related options
+      name: {name-of-hpa-resource}                   # Optional. Default: keda-hpa-{scaled-object-name}
+      behavior:                                      # Optional. Use to modify HPA's scaling behavior
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 15
+  triggers:
+  # {list of triggers to activate scaling of the target resource}
+
+---
+
+# minReplicaCount: The minimum number of replicas KEDA will maintain (default: 0).
+# maxReplicaCount: The maximum number of replicas allowed.
+# cooldownPeriod: Time (in seconds) before scaling down after an inactivity period (default: 300).
+# pollingInterval: How often KEDA checks trigger conditions (default: 30 seconds).
+# successfulJobsHistoryLimit / failedJobsHistoryLimit: Number of historical job records to keep for reference.

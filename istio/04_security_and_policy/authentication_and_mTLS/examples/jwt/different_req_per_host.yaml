@@ -1,0 +1,42 @@
+
+# Set a different JWT requirement for a different host. 
+# The RequestAuthentication declares it can accept JWTs issued by 
+# either issuer-foo or issuer-bar (the public key set is implicitly set from the OpenID Connect spec)
+
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: httpbin
+  namespace: foo
+spec:
+  selector:
+    matchLabels:
+      app: httpbin
+  jwtRules:
+  - issuer: "issuer-foo"
+  - issuer: "issuer-bar"
+
+---
+
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: httpbin
+  namespace: foo
+spec:
+  selector:
+    matchLabels:
+      app: httpbin
+  rules:
+  - from:
+    - source:
+        requestPrincipals: ["issuer-foo/*"]
+    to:
+    - operation:
+        hosts: ["example.com"]
+  - from:
+    - source:
+        requestPrincipals: ["issuer-bar/*"]
+    to:
+    - operation:
+        hosts: ["another-host.com"]

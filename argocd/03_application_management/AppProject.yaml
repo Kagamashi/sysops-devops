@@ -1,0 +1,95 @@
+
+# AppProject
+
+# Custom Kubernetes resurce that defines a logical grouping of applications
+# It allows administrators to enforce policies and restrictions across multiple apps, such as restricting which Git repositories, clusters, and namespaces can be used
+# It also enables RBAC for applications under that project
+
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject  # Defines the ArgoCD AppProject resource
+metadata:
+  name: my-project  # Name of the project
+  namespace: argocd  # Namespace where the project is defined (typically 'argocd')
+spec:
+  description: "Project for team A applications"  # Optional description of the project
+
+  # Define which Git repositories are allowed for this project
+  sourceRepos:
+    - https://github.com/my-org/my-app-repo  # Allow this Git repository
+    - https://github.com/my-org/my-other-repo  # Additional Git repository for this project
+
+  # Define which Kubernetes clusters and namespaces are allowed for this project
+  destinations:
+    - namespace: dev-namespace  # Applications can only deploy to this namespace
+      server: https://kubernetes.default.svc  # Kubernetes API server URL (in-cluster or external)
+    - namespace: prod-namespace
+      server: https://prod-cluster-api-url  # External cluster for production
+  
+  # Define permissions for specific resources that applications in this project can manage
+  clusterResourceWhitelist:
+    - group: "*"  # Allow managing all cluster-scoped resources
+      kind: "*"  # Allow all resource kinds
+  namespaceResourceWhitelist:
+    - group: apps  # Allow managing application-related resources
+      kind: Deployment  # Only allow managing Deployments within namespaces
+
+  # Optional: List of signatures to ensure only signed commits are deployed
+  signatureKeys:
+    - keyID: ABCD1234  # GPG public key ID to verify commit signatures
+
+  # RBAC: Define roles and policies for this project
+  roles:
+    - name: dev-role  # Name of the role
+      description: "Developer role with read and sync access"
+      policies:
+        - p, proj:my-project:dev-role, applications, get, *, allow  # Allow reading applications
+        - p, proj:my-project:dev-role, applications, sync, *, allow  # Allow syncing applications
+      groups:
+        - devs-group  # Map this role to an external user group (e.g., from SSO)
+    - name: admin-role
+      description: "Administrator role with full access"
+      policies:
+        - p, proj:my-project:admin-role, applications, *, *, allow  # Full access to applications
+      groups:
+        - admins-group  # Map admin group to this role
+
+  # Sync Windows: Define when applications are allowed or denied syncs
+  syncWindows:
+    - kind: allow  # Allow syncing only during this time window
+      schedule: "Mon-Fri 09:00-17:00"  # Time window in cron format (workdays from 9 AM to 5 PM)
+      duration: 8h  # How long the sync window lasts
+      applications:
+        - "*"  # Apply this sync window to all applications in the project
+    - kind: deny  # Deny syncing during this time window
+      schedule: "Sat-Sun 00:00-23:59"  # Deny syncs on weekends
+
+  # Optional: Automatically create default RBAC roles in the project
+  namespaceResourceBlacklist:
+    - group: ""  # Kubernetes core resources
+      kind: Pod  # Deny managing Pods
+    - group: ""  
+      kind: Secret  # Deny managing Secrets
+
+  # Automation options for resource pruning or health check policies
+  orphanedResources:
+    warn: true  # Warn if there are orphaned resources (resources in the cluster but not in Git)
+
+---
+
+# metadata.name: The name of the ArgoCD project.
+# metadata.namespace: The namespace where the project is managed (typically argocd).
+# spec.description: An optional field to describe the purpose of the project.
+# spec.sourceRepos: Defines which Git repositories can be used by applications within this project.
+# spec.destinations: Specifies which Kubernetes clusters and namespaces are allowed for deployments in the project. You can list multiple clusters and namespaces.
+# spec.clusterResourceWhitelist: Defines the cluster-scoped resources that applications in the project are allowed to manage. By default, no cluster resources are allowed unless specified.
+# spec.namespaceResourceWhitelist: Defines the namespace-scoped resources that applications in the project can manage (e.g., Deployments, Services, etc.).
+# spec.roles: Defines roles within the project. Each role is associated with specific permissions (policies) such as syncing applications or reading application statuses.
+# spec.roles.policies: RBAC policies are used to define what actions are allowed for each role. This is where you specify what resources each role can access.
+# spec.roles.groups: Maps external user groups (e.g., from SSO or LDAP) to the project role.
+# spec.syncWindows: Controls when applications in the project are allowed or denied syncing. This is useful for controlling when updates can occur (e.g., during business hours or avoiding weekends).
+# kind: Specifies whether to allow or deny syncing.
+# schedule: A cron-like schedule for the sync window.
+# duration: How long the window lasts.
+# spec.namespaceResourceBlacklist: Deny management of specific namespace-scoped resources (e.g., Pods or Secrets). Useful for preventing specific resources from being modified by applications.
+# spec.orphanedResources.warn: If set to true, ArgoCD will warn about orphaned resources (resources present in the cluster that are not defined in Git). This can help prevent untracked or leftover resources.
+# spec.signatureKeys: Defines GPG keys used to verify the signatures of Git commits, ensuring that only trusted and signed commits are deployed in the project.

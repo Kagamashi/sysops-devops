@@ -1,0 +1,43 @@
+# In this example, a stage is repeated twice for two testing regimes. The stage itself is specified only once.
+# File: stages/test.yml
+
+parameters:
+  name: ''
+  testFile: ''
+
+stages:
+
+- stage: Test_${{ parameters.name }}
+  jobs:
+
+  - job: ${{ parameters.name }}_Windows
+    pool:
+      vmImage: windows-latest
+    steps:
+
+    - script: npm install
+    - script: npm test -- --file=${{ parameters.testFile }}
+
+  - job: ${{ parameters.name }}_Mac
+    pool:
+      vmImage: macOS-latest
+    steps:
+
+    - script: npm install
+    - script: npm test -- --file=${{ parameters.testFile }}
+
+---
+
+# templated pipeline: azure-pipelines.yml
+stages:
+
+- template: stages/test.yml  # Template reference
+  parameters:
+    name: Mini
+    testFile: tests/miniSuite.js
+
+
+- template: stages/test.yml  # Template reference
+  parameters:
+    name: Full
+    testFile: tests/fullSuite.js

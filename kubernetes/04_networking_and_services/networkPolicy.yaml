@@ -1,0 +1,116 @@
+# NetworkPolicy
+# Controls network traffic allowed to and from Pods.
+# NetworkPolicies defines rules for ingress (incoming) and egress (outgoing) traffic to Pods based on labels, namespaces, IP addresses.
+
+# Key features:
+#   - Label-based rules: NetworkPolicies apply rules based on Pod labels 
+#   - Default Deny: by default without NetworkPolicy all traffic is allowed 
+#   - Namespace isolation: limit traffic between Pods across different namespaces 
+
+# Elements:
+#   - Pod Selector: which Pods NetworkPolicy applies to - based on Labels 
+#   - Policy Types: ingress, egress or both
+#   - Ingress/Egress Rules: 
+#       - Pods by label
+#       - Namespace by label 
+#       - IP blocks (CIDR ranges)
+
+--- 
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy         
+metadata:
+  name: allow-same-namespace
+  namespace: my-namespace          # Namespace to which this policy applies
+spec:
+  podSelector:                     # Selects the Pods this policy applies to (based on labels)
+    matchLabels:
+      app: my-app
+  policyTypes:
+  - Ingress                        # This policy controls ingress (incoming) traffic
+  - Egress                         # This policy controls egress (outgoing) traffic
+  ingress:                         # Rules for incoming traffic
+  - from:
+    - podSelector:                 # Allow traffic only from Pods with matching labels
+        matchLabels:
+          app: my-app              # Allow traffic from Pods with label app=my-app
+    ports:
+    - protocol: TCP
+      port: 80                     # Only allow traffic to port 80
+  egress:                          # Rules for outgoing traffic
+  - to:
+    - podSelector:                 # Allow outgoing traffic to Pods with matching labels
+        matchLabels:
+          app: backend-app         # Allow traffic to Pods with label app=backend-app
+    ports:
+    - protocol: TCP
+      port: 8080                   # Allow outgoing traffic on port 8080
+
+--- 
+
+# apiVersion and kind: The API version for NetworkPolicies is networking.k8s.io/v1, and the resource type is NetworkPolicy.
+# metadata.namespace: Defines the namespace where the policy applies. This policy will only affect Pods in my-namespace.
+# spec.podSelector: Specifies which Pods the NetworkPolicy applies to. In this example, it applies to all Pods with the label app: my-app. If podSelector is empty, the policy applies to all Pods in the namespace.
+# policyTypes: Specifies the traffic direction the policy controls. Options include:
+#   Ingress: Controls incoming traffic to the Pods.
+#   Egress: Controls outgoing traffic from the Pods.
+# ingress: Defines rules for incoming traffic to the selected Pods. In this example, only traffic from Pods with the label app: my-app is allowed on TCP port 80.
+# egress: Defines rules for outgoing traffic from the selected Pods. In this example, the selected Pods can send traffic to Pods labeled app: backend-app on TCP port 8080.
+
+--- 
+
+# Defauly Deny - Deny All Ingress Traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-ingress
+  namespace: my-namespace
+spec:
+  podSelector: {}      # Select all Pods in the namespace
+  policyTypes:
+  - Ingress            # Deny all incoming traffic
+
+---
+
+# Allow Ingress from Specific Namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-namespace
+  namespace: my-namespace
+spec:
+  podSelector:
+    matchLabels:
+      app: my-app
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:          # Allow traffic from Pods in a specific namespace
+        matchLabels:
+          name: trusted-namespace  # Allow only from namespace labeled "trusted-namespace"
+    ports:
+    - protocol: TCP
+      port: 443                    # Allow traffic on port 443 (HTTPS)
+
+---
+
+# Allow Egress to Specific IP Range
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-external
+  namespace: my-namespace
+spec:
+  podSelector:
+    matchLabels:
+      app: my-app
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - ipBlock:                    # Allow traffic to specific external IP range
+        cidr: 192.168.0.0/16
+    ports:
+    - protocol: TCP
+      port: 443                    # Allow outgoing traffic on port 443 (HTTPS)

@@ -1,0 +1,82 @@
+# StatefulSet
+# Designed to manage stateful applications that require stable, persistent storage and ordered, consistent deployment of Pods.
+# StatefulSets are essential for applications such as: databases (MySQL, PostgreSQL), distributed systems (Kafka, ZooKeeper, Cassandra)...
+
+# Key Features:
+#   - Stable Pod Identity : each Pod get a stable unique network identity (DNS and hostname) and ordinal index (e.g. web-0, web-1)
+#   - Stable Storage : StatefulSets work with PVCs to ensure that each Pod has stable persistent storage even if the Pod is deleted or rescheduled 
+#   - Ordered Pod Creation and Deletion : Pods are created, updated and terminated in a strict order
+#     Pod web-0 must be running and ready before web-1 can be created 
+#     Deletion (and scaling down) is in reverse order, web-1 will be deleted before web-0
+#   - Scaling and Updates are also in order
+
+# Pods are given consistent DNS hostnames:
+  <pod-name>.<statefulset-name>.<namespace>.svc.cluster.local
+
+# StatefulSets rely on headless services for stable networking.
+# A headless service is a service without cluster IP, allowing Kubernetes to generate stable DNS entries for each Pod.
+#  <stateful-pod-name>.<service-name>.<namespace>.svc.cluster.local
+# For example StatefulSet named web with service name nginx-headless:
+#   web-0.nginx-headless.default.svc.cluster.local
+
+--- 
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+  labels:
+    app: nginx
+spec:
+  serviceName: "nginx"  # Headless service for stable network identity
+  replicas: 3           # Number of desired Pods
+  selector:
+    matchLabels:
+      app: nginx        # Label selector to match Pods with the label app=nginx
+
+  # VolumeClaimTemplates define PersistentVolumeClaims (PVCs) for each Pod in the StatefulSet
+  volumeClaimTemplates:
+    - metadata:
+        name: www        # Name of the PVC for each Pod
+      spec:
+        accessModes: ["ReadWriteOnce"]  # Pod must have read-write access to its volume
+        resources:
+          requests:
+            storage: 1Gi  # Each Pod gets 1Gi of storage
+
+  # Pod management policy can be OrderedReady (default) || Parallel
+  podManagementPolicy: OrderedReady  # Pods are created and terminated in sequence
+  template:
+    metadata:
+      labels:
+        app: nginx       # Label to match the Pods created by this StatefulSet
+    spec:
+      containers:
+        - name: nginx-container  # Name of the container
+          image: nginx           # Container image for the Pods
+          ports:
+            - containerPort: 80  # Port exposed by the container
+          volumeMounts:
+            - name: www          # Mount the PersistentVolume created by the volumeClaimTemplates
+              mountPath: /usr/share/nginx/html  # Path inside the container
+
+  # Strategy for updating StatefulSet Pods
+  updateStrategy:
+    type: RollingUpdate  # Update Pods in a rolling update fashion
+    rollingUpdate:
+      partition: 0       # Update all Pods by default (partition can be set to delay updates for certain Pods)
+  # updateStrategy:
+  #   type: RollingUpdate
+  #   rollingUpdate:
+  #     partition: 1    # Only update Pods with ordinal index greater than or equal to 1
+
+--- 
+
+# apiVersion and kind: apps/v1 is the stable API version for StatefulSets, and StatefulSet defines the resource type.
+# metadata: The name is the unique identifier for the StatefulSet, and labels are used for organizing and selecting resources.
+# spec.replicas: Defines the number of desired Pods. Each Pod will have a stable identity (e.g., web-0, web-1, web-2).
+# spec.serviceName: Refers to a headless service that provides DNS records for each Pod, giving each Pod a stable network identity.
+# volumeClaimTemplates: Defines PersistentVolumeClaims (PVCs), which ensure that each Pod gets its own PersistentVolume. The volumeClaimTemplates section creates a separate PVC for each Pod. The volume remains even if the Pod is deleted, ensuring data persistence.
+# podManagementPolicy: Determines how Pods are managed. The default is OrderedReady, which ensures Pods are created and terminated in a strict order. You can also set it to Parallel for faster Pod creation, but this sacrifices the ordered deployment.
+# template: Defines the Pod template for each Pod in the StatefulSet, similar to a Deployment. This includes container details like the image, ports, and volume mounts.
+# updateStrategy: Specifies how Pods should be updated during a StatefulSet update. The default is RollingUpdate, which updates Pods sequentially to ensure minimal disruption to the application.

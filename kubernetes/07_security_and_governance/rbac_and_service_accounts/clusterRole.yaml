@@ -1,0 +1,19 @@
+
+# ClusterRole
+# Similar to a Role, but it applies at the cluster level or across multiple namespaces.
+# ClusterRoles are used for granting access to cluster-wide resources (like Nodes or PersistentVolumes) or across namespaces.
+# ClusterRoles can also be used in RoleBindings within a namespace to grant cluster-wide permissions.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole                       # Defines this resource as a ClusterRole
+metadata:
+  name: cluster-admin-role              # Name of the ClusterRole
+rules:                                  # Rules define the permissions granted by this ClusterRole
+- apiGroups: [""]                       # "" refers to the core API group
+  resources: ["nodes", "pods"]          # Resources this ClusterRole applies to (cluster-wide resources)
+  verbs: ["get", "list", "watch", "delete"]  # Allowed actions (e.g., delete nodes and pods)
+
+# kind: ClusterRole: Specifies this resource as a ClusterRole, which can be applied to cluster-wide resources (e.g., Nodes, PersistentVolumes) or used across multiple namespaces.
+# rules: Similar to the Role, but this applies to cluster-wide resources or permissions across namespaces.
+
+---

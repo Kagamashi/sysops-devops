@@ -1,0 +1,47 @@
+
+# Controls the rate at which requests are sent to a particular service, 
+# helping to protect services from being overwhelmed by too many requests in short period of time.
+# By capping the number of request a service can handle, rate limiting ensures fair resource allocation and maintains service stability under load.
+
+# - Request Limits: Control the number of requests per second, minute, or hour that a service can handle.
+# - Per-User/Client Rate Limits: Apply rate limits based on client identity, IP address, or user identity (e.g., via JWT tokens).
+# - Global Rate Limits: Set rate limits that apply across the entire service mesh.
+
+# Rate Limiting Options:
+#   Per Client: Limit the number of requests from specific users or clients.
+#   Per Service: Define maximum allowed requests for each service, preventing any one service from being overwhelmed.
+#   Distributed Rate Limiting: Apply rate limits across the entire mesh, ensuring coordinated limits across multiple instances of the service.
+
+
+# Istio doesn't have built-in native rate-limiting API
+# rate limiting can be implemented via EnvoyFilter to configure rate-limiting policies in Envoy Proxies
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: rate-limit-filter
+  namespace: istio-system
+spec:
+  workloadSelector:
+    labels:
+      istio: ingressgateway
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: GATEWAY
+        listener:
+          portNumber: 80
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.ratelimit
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
+            domain: rate_limit_domain
+            rate_limit_service:
+              grpc_service:
+                envoy_grpc:
+                  cluster_name: rate_limit_cluster
+                timeout: 0.25s

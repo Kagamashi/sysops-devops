@@ -1,0 +1,14 @@
+apiVersion: animal/v1
+kind: Gorilla
+metadata:
+  name: gg
+---
+apiVersion: animal/v1
+kind: AnimalPark
+metadata:
+  name: ap
+spec:
+  gorillaRef:
+    name: gg
+    kind: Gorilla
+    apiVersion: animal/v1

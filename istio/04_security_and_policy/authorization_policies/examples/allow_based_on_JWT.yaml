@@ -1,0 +1,20 @@
+
+# Only users authenticated via auth.example.com with my-user identity can access /secure-data.
+
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: jwt-access-policy
+  namespace: default
+spec:
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        requestPrincipals: ["https://auth.example.com/my-user"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/secure-data"]
+
+---

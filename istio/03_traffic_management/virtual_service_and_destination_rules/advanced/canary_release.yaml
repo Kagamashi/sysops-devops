@@ -1,0 +1,31 @@
+
+# Canary release with traffic splitting
+# gradually shifts traffic between different versions which allows teams to monitor the behavior of the new version on a small percentage of users before fully deploying it
+
+# Progressive delivery is a modern deployment strategy that builds on the principles of canary deployments 
+# by gradually increasing traffic to the new version based on real-time metrics and health checks.
+# It ensures that updates are rolled out slowly and only promoted if key performance indicators (KPIs) remain positive.
+
+#   - Automated Traffic Shifting: Based on performance and success metrics (e.g., latency, error rates), traffic is gradually shifted from the old version to the new version.
+#   - Roll Back on Failure: If the new version shows signs of failure, Istio can automatically reduce or stop the traffic to the new version.
+#   - Metrics-Based Decision Making: Integration with monitoring tools like Prometheus allows traffic to increase only if predefined metrics (like error rate, response time) remain healthy.
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: my-service
+spec:
+  hosts:
+    - my-service.default.svc.cluster.local
+  http:
+    - route:
+        - destination:
+            host: my-service
+            subset: v1  # Stable version
+          weight: 80     # 80% of traffic
+        - destination:
+            host: my-service
+            subset: v2  # Canary version
+          weight: 20     # 20% of traffic
+
+---

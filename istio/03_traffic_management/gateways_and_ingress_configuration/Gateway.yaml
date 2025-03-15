@@ -1,0 +1,112 @@
+# Gateway
+
+# Configuration resource that defines how external traffic enters or exits the service mesh. 
+# Gateways allows managing ingress (incoming traffic from outside the mesh) and egress (outgoing traffic to external services) for services running inside the mesh. 
+# They act as entry or exit points, ensuring that traffic is controlled, secure, and compliant with policies such as routing, load balancing, and TLS termination.
+
+# Unlike Kubernetes Ingress resources, Istio’s Gateways provide additional flexibility, supporting complex traffic routing and integrating with Istio’s security, traffic management, and observability features.
+
+# Key Features:
+#   Ingress Traffic: Defines how external traffic enters the service mesh and is routed to internal services.
+#   Egress Traffic: Manages how traffic leaves the service mesh to reach external services or resources.
+#   TLS Termination: Allows Istio Gateways to handle HTTPS traffic by terminating TLS connections.
+#   Traffic Control: Gateways allow Istio’s traffic routing policies, such as load balancing, retries, timeouts, and fault injection, to be applied to external traffic.
+#   Multi-Cluster/Multi-Mesh: Gateways play a crucial role in connecting services across multiple clusters or meshes.
+
+# TLS Modes in Gateways
+#   SIMPLE: Istio terminates the TLS connection for incoming traffic (e.g., HTTPS) and forwards plaintext traffic to the destination service.
+#   PASSTHROUGH: TLS traffic is forwarded without termination. This is useful when the destination service handles TLS termination.
+#   MUTUAL: Istio terminates the TLS connection and requires mutual TLS, meaning both the client and server must provide valid certificates.
+
+# Gateway Types:
+#   Ingress Gateway: Manages inbound traffic from external sources to services within the mesh.
+#   Egress Gateway: Controls outbound traffic from the mesh to external services, applying security policies like mTLS and traffic routing.
+
+---
+
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: istio-system        # Namespace where this gateway is applied
+spec:
+  selector:                      # Select the workload (usually an Istio ingress gateway pod) for the Gateway
+    istio: ingressgateway        # ingressgateway || egressgateway
+  servers:                       # Define servers to handle incoming traffic
+    - port:
+        number: 80               # Port for incoming HTTP traffic
+        name: http               # Name of the port
+        protocol: HTTP
+      hosts:
+        - "mydomain.com"         # Hosts to match traffic for
+    - port:
+        number: 443              # Port for HTTPS traffic (TLS)
+        name: https
+        protocol: HTTPS          # HTTPS protocol with TLS
+      tls:
+        mode: SIMPLE             # TLS termination mode (SIMPLE means Istio terminates the TLS connection)
+        credentialName: my-tls-cert  # Refers to the Kubernetes secret containing TLS certs
+      hosts:
+      - "app1.example.com" # Hosts to match traffic for
+      - "app2.example.com"
+
+---
+
+# selector: Specifies the workload (typically the Istio ingress/egress gateway pod) where the Gateway should be applied. It allows Istio to associate the Gateway resource with the actual Gateway service running in the mesh (e.g., ingressgateway).
+# servers: Defines servers that handle incoming or outgoing traffic. Each server configuration includes the following:
+#   port: The port number and protocol (e.g., HTTP, HTTPS) for the traffic.
+#   hosts: A list of hostnames that the Gateway should match traffic for. You can use exact hostnames or wildcards.
+#   tls: Specifies the TLS settings if the server is handling HTTPS traffic. This includes the TLS mode (SIMPLE, MUTUAL, etc.) and credentials for certificate handling.
+# tls: If handling HTTPS traffic, the tls section defines how TLS termination is performed. You can specify the following modes:
+#   SIMPLE: Istio terminates the TLS connection.
+#   MUTUAL: Enforces mutual TLS (mTLS) for client-server authentication.
+#   PASSTHROUGH: Istio forwards TLS connections without terminating them, allowing the destination service to handle TLS.
+#   credentialName: refers to a Kubernetes secret containing the TLS certificate and private key.
+
+---
+
+# To route traffic from Gateway to internal services we must associate Gateway with a VirtualService.
+# VirtualService defines how Gateway should route traffic to services within the mesh. 
+
+# In this example:
+# The Gateway handles external HTTP traffic on mydomain.com and forwards it to the VirtualService.
+# The VirtualService defines how the traffic is routed within the mesh, in this case, routing it to my-service on port 8080.
+
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "mydomain.com"
+---
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: my-virtualservice
+  namespace: default
+spec:
+  hosts:
+    - "mydomain.com"
+  gateways:
+    - my-gateway            # Associate the VirtualService with the Gateway
+  http:
+    - match:
+        - uri:
+            prefix: /       # Match all traffic
+      route:
+        - destination:
+            host: my-service.default.svc.cluster.local  # Route traffic to an internal service
+            port:
+              number: 8080   # Route traffic to port 8080 of the internal service
+
+---

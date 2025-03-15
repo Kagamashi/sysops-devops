@@ -1,0 +1,49 @@
+
+
+# EGRESS GATEWAY
+# controls outbound traffic from the service mesh, ensuring that Istio’s policies are applied to traffic leaving the mesh. 
+# This is useful for enforcing mTLS, TLS termination, traffic control, and monitoring for traffic destined for external services.
+
+# Egress Gateway for External Service
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: egress-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: egressgateway       # Use the "egressgateway" workload
+  servers:
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - "*.example.com"      # Allow outgoing traffic to any subdomain of example.com
+      tls:
+        mode: PASSTHROUGH      # Forward HTTPS traffic without terminating it
+
+--- 
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: external-service
+  namespace: default
+spec:
+  hosts:
+    - "*.example.com"
+  gateways:
+    - egress-gateway             # Associate with the egress gateway
+  tls:
+    - match:
+        - port: 443
+          sniHosts:
+            - "*.example.com"    # Match outgoing traffic to example.com
+      route:
+        - destination:
+            host: example.com
+            port:
+              number: 443
+
+---

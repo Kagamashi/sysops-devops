@@ -1,0 +1,76 @@
+
+# Used to configure policies for the traffic intended for a service after routing has been applied by a VirtualService. 
+
+# Key Features:
+#   Load Balancing: Control how requests are distributed across service instances (e.g., round-robin, least connections).
+#   Connection Pooling: Manage how many requests can be sent to a service at the same time.
+#   Outlier Detection: Automatically eject unhealthy instances from the load balancing pool.
+#   Circuit Breaking: Prevent a service from being overwhelmed by too many requests.
+#   Service Subsets: Define subsets of services (e.g., different versions) to apply specific policies.
+
+# Usage Example:
+#   Canary Deployments: Define two subsets (v1 and v2) of a service, each with its own traffic policy. A VirtualService can then route traffic to these subsets based on traffic weights or user characteristics.
+#   Circuit Breaking: Limit the maximum number of concurrent requests and connections to a service to prevent it from being overloaded. If too many errors occur, outlier detection can automatically remove the unhealthy instances.
+#   Load Balancing: Apply different load balancing strategies based on the traffic type or destination subset. For example, you could use ROUND_ROBIN for the main service and LEAST_CONN for a specific subset that handles high-load tasks.
+
+---
+
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: my-destination-rule
+  namespace: default         # Namespace where the DestinationRule applies
+spec:
+  host: my-service           # The FQDN of the service that this rule applies to
+  trafficPolicy:             # Define traffic policies for all subsets and services
+    loadBalancer:            
+      simple: ROUND_ROBIN    # Load balancing mode (ROUND_ROBIN || LEAST_CONN || RANDOM || PASSTHROUGH)
+      consistentHash:        
+        httpHeaderName: user-id  # Hash requests based on a specific HTTP header (e.g., user ID)
+    connectionPool:
+      http:                  # HTTP connection pooling settings
+        http1MaxPendingRequests: 100 # Max number of pending HTTP/1.1 requests
+        maxRequestsPerConnection: 10
+      tcp:                   # TCP connection pooling settings
+        maxConnections: 1000
+        connectTimeout: 30ms  # Timeout for establishing new TCP connections
+    outlierDetection:        # Detect and reject unhealthy service instances
+      consecutiveErrors: 5    # Number of consecutive errors before ejection
+      interval: 10s           # Time window to check for errors
+      baseEjectionTime: 30s   # How long the instance is ejected
+      maxEjectionPercent: 50  # Max percentage of instances that can be ejected
+  subsets:                   # Define subsets (versions) of the service
+    - name: v1               # Name of the subset (used in VirtualServices)
+      labels:                # Match subset based on Kubernetes labels
+        version: v1          # Match the "v1" version of the service
+      trafficPolicy:         # Traffic policy for this subset
+        loadBalancer:
+          simple: LEAST_CONN # Different load balancer setting for this subset
+        connectionPool:
+          tcp:
+            maxConnections: 200 # Specific connection pool settings for this subset
+    - name: v2               # Another subset for the "v2" version
+      labels:
+        version: v2
+      trafficPolicy:
+        loadBalancer:
+          simple: RANDOM      # Use a different load balancing strategy
+  exportTo:                   # Control visibility of this rule
+    - "."                     # The rule applies only to the current namespace
+    - "*"
+  tls:                        # Apply TLS settings for this service
+    mode: ISTIO_MUTUAL        # TLS mode (other options: DISABLE || SIMPLE || MUTUAL)
+    clientCertificate: /etc/certs/cert-chain.pem # Client cert for MUTUAL mode
+    privateKey: /etc/certs/key.pem               # Private key for MUTUAL mode
+    caCertificates: /etc/certs/root-cert.pem     # CA certificates for MUTUAL mode
+
+---
+
+# host: Specifies the service to which this DestinationRule applies, using the fully qualified domain name (FQDN) or the short service name within the namespace.
+# trafficPolicy: Configures global traffic policies for the service, such as load balancing, connection pooling, circuit breaking, and outlier detection.
+# loadBalancer: Defines the load balancing strategy for distributing traffic among service instances. Options include ROUND_ROBIN, LEAST_CONN, RANDOM, and PASSTHROUGH (direct communication).
+# connectionPool: Configures how connections are managed for both HTTP and TCP traffic, including the maximum number of connections, requests per connection, and connection timeouts.
+# outlierDetection: Detects and ejects unhealthy service instances that consistently fail or return errors. Configurable thresholds determine when instances are considered unhealthy.
+# subsets: Defines subsets (e.g., versions) of the service using Kubernetes labels. You can apply different traffic policies (e.g., load balancing or circuit breaking) to each subset, enabling scenarios like canary deployments or A/B testing.
+# exportTo: Controls the visibility of this DestinationRule across namespaces. By default, DestinationRules are scoped to the namespace where they are created, but you can allow or restrict access to other namespaces or clusters.
+# tls: Configures TLS settings for the service. TLS can be enabled with ISTIO_MUTUAL mode (automatic mTLS between services), or MUTUAL mode with manually specified certificates for client authentication.

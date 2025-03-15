@@ -1,0 +1,16 @@
+
+# defines domains, duration, secret storage,a nd issuer for a TLS certificate
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: my-tls-cert
+  namespace: default
+spec:
+  secretName: my-tls-secret
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - example.com
+    - www.example.com

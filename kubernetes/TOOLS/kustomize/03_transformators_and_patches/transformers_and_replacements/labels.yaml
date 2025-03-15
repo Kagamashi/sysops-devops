@@ -1,0 +1,10 @@
+
+# labels
+# map[string]string
+# add labels without automatically injecting corresponding selectors
+
+labels:
+- pairs:
+    app.kubernetes.io/name: app # labels to add
+  includeSelectors: true        # add labels to selectors
+  includeTemplate: true         # add labels to template section as well (spec.template.metadata.labels)

@@ -1,0 +1,8 @@
+
+## BASE
+# Collection of Kubernetes manifests that can be reused across multiple environments.
+
+# **base/kustomization.yaml**
+resources:
+  - deployment.yaml
+  - service.yaml

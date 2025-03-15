@@ -1,0 +1,83 @@
+# StorageClass
+# API resource used to define different types or "classes" of storage that administrators provide in Kubernetes cluster.
+# It allows for dynamic provisioning of storage when PVC requests it, based on defined parameters such as storage type, performance tier, backup policies.
+
+# Key features: 
+#   - AllowVolumeExpansion: allows dynamically provisioned volumes to be resized 
+#   - Provisioners: StorageClass uses specific provisioner to create PersistentVolumes 
+#   - Allow dynamic provisioning of PVs when a PVC is created
+
+# Common provisioners:
+#   AWS EBS: kubernetes.io/aws-ebs
+#   Google Cloud Persistent Disk: kubernetes.io/gce-pd
+#   Azure Disk: kubernetes.io/azure-disk
+#   NFS: kubernetes.io/nfs
+#   Ceph RBD: kubernetes.io/rbd
+
+# Volume binding mode: 
+#   - Immediate:            PV is provisioned and bound to PVC as soon as PVC is created (default mode)
+#   - WaitForFirstConsumer: PV is provisioned and bound to the PVC only when a Pod that uses the PVC is scheduled.
+
+# Reclaim Policy: What happens when PV is released
+#   - Retain:  PV is not deleted and remains in the cluster 
+#   - Delete:  PV is deleted along with the data it contains 
+#   - Recycle: PV is wiped and made available for future use 
+
+---
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-storage    
+provisioner: kubernetes.io/aws-ebs  # The provisioner used for dynamic provisioning (AWS EBS in this case)
+parameters:
+  type: gp2                     # AWS EBS volume type (e.g., gp2 for General Purpose SSD)
+  fsType: ext4                  # Filesystem type for the volume (e.g., ext4)
+reclaimPolicy: Delete           # Reclaim policy (Delete, Retain, Recycle)
+allowVolumeExpansion: true      # Allows the PV to be resized dynamically
+volumeBindingMode: Immediate    # Bind the volume immediately when the PVC is created
+
+--- 
+
+# apiVersion and kind: The API version for StorageClass is storage.k8s.io/v1, and the resource type is StorageClass.
+# metadata.name: Specifies the name of the StorageClass. This name is used when requesting storage in a PersistentVolumeClaim.
+# provisioner: Defines the provisioner responsible for dynamically creating PersistentVolumes. In this example, kubernetes.io/aws-ebs is the provisioner for AWS EBS volumes. Other examples include kubernetes.io/gce-pd (Google Persistent Disk) and kubernetes.io/azure-disk (Azure Disk).
+# parameters: These are specific to the provisioner. For AWS, type specifies the type of EBS volume (e.g., gp2, io1), and fsType specifies the filesystem type (e.g., ext4, xfs). Parameters vary based on the provisioner used.
+# reclaimPolicy: Defines what happens to the PersistentVolume after the corresponding PersistentVolumeClaim is deleted. Options include:
+#   Delete: The PV and its associated storage are deleted.
+#   Retain: The PV is retained, and the storage remains available for manual recovery.
+#   Recycle: The volume is scrubbed and made available for future use (deprecated in newer Kubernetes versions).
+# allowVolumeExpansion: Allows dynamically provisioned volumes to be resized. When set to true, PVCs using this StorageClass can be expanded.
+# volumeBindingMode: Controls when the PersistentVolumeClaim is bound to a PersistentVolume. Options include:
+#   Immediate: The PVC is bound immediately to a PV when it is created.
+#   WaitForFirstConsumer: The PV is only provisioned and bound when a Pod that uses the PVC is scheduled. This is useful in multi-zone environments to ensure the volume is provisioned in the correct zone where the Pod is scheduled.
+
+--- 
+
+# Example of StorageClass for Google Cloud Persistent Disk
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: standard-storage
+provisioner: kubernetes.io/gce-pd  # Provisioner for Google Cloud Persistent Disk
+parameters:
+  type: pd-standard                # Disk type (e.g., pd-standard for HDD, pd-ssd for SSD)
+  replication-type: none           # Replication policy for the disk
+reclaimPolicy: Retain              # Retain the PV after PVC is deleted
+allowVolumeExpansion: true         # Allow volume expansion
+volumeBindingMode: WaitForFirstConsumer  # Wait for a Pod to request the volume before provisioning
+
+---
+
+# Example of a PersistentVolumeClaim(PVC) with StorageClass
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-dynamic-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi                  # Requesting 50Gi of storage
+  storageClassName: fast-storage     # Reference to the StorageClass

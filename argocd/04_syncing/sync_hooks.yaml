@@ -1,0 +1,116 @@
+# SYNC HOOKS
+
+# Allow to define custom behavior or actions that are executed during the application sync process.
+# Sync hooks are Kubernetes resources that ArgoCD will execute at specific stages of the syncrhonization lifecycle of an app.
+# These hooks provide powerful mechanism to extend default behavior of ArgoCD during syncs by running jobs or custom scripts before or after resource changes.
+
+# - PreSync : executed before ArgoCD starts syncing the app resources 
+# - Sync : executed during the actual sync phase, in parallel with app resources 
+# - PostSync : executed after sync process is complete and the app resources have been applied 
+# - SyncFail : executed if the sync process fails 
+
+# Hooks can be implemented using standard Kubernetes resources: Jobs, Pods, Deployments 
+#   - HookSucceeded : hook resource is deleted after it succeeds 
+#   - HookFailed : hook resource is deleted if it fails 
+#   - BeforeHookCreation : deletes previous instance of the hook resource before new instance is created 
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pre-sync-db-migration  # Name of the hook job
+  annotations:
+    argocd.argoproj.io/hook: PreSync  # This hook runs before the sync process begins
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded  # Delete the Job after it succeeds
+spec:
+  template:
+    spec:
+      containers:
+        - name: migrate-db
+          image: my-database-migration-image  # Container image for database migration
+          command: ["sh", "-c", "python migrate.py"]  # Command to run in the Job
+      restartPolicy: OnFailure  # Job will restart on failure
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: post-sync-cleanup
+  annotations:
+    argocd.argoproj.io/hook: PostSync  # This hook runs after the sync process completes
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded  # Delete the Job after it succeeds
+spec:
+  template:
+    spec:
+      containers:
+        - name: cleanup
+          image: my-cleanup-image  # Container image for cleanup tasks
+          command: ["sh", "-c", "python cleanup.py"]  # Command to run in the Job
+      restartPolicy: OnFailure
+
+---
+
+# PreSync Hook:
+# metadata.annotations["argocd.argoproj.io/hook"]: The PreSync annotation indicates that this Job should run before ArgoCD begins syncing the application's resources. This is useful for tasks that must happen before the actual application deployment, such as database migrations or configuration setup.
+# metadata.annotations["argocd.argoproj.io/hook-delete-policy"]: The HookSucceeded policy specifies that the hook resource (the Job) should be deleted after it completes successfully. You can use other policies such as HookFailed or BeforeHookCreation to retain or delete the hook under different conditions.
+# spec.template.spec.containers.command: This is the command that will be executed by the Job. In this case, it’s a database migration script.
+# PostSync Hook:
+# metadata.annotations["argocd.argoproj.io/hook"]: The PostSync annotation indicates that this Job should run after the application resources have been successfully synced. PostSync hooks are commonly used for tasks such as cleaning up temporary resources or finalizing configurations.
+# spec.template.spec.restartPolicy: The OnFailure policy ensures that the Job will be retried if it fails.
+
+---
+
+# Advanced scenario: FULL LIFECYCLE OF SYNC HOOKS 
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pre-sync-config-setup
+  annotations:
+    argocd.argoproj.io/hook: PreSync  # Run this job before the sync starts
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  template:
+    spec:
+      containers:
+        - name: config-setup
+          image: my-config-image
+          command: ["sh", "-c", "setup-config.sh"]
+      restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sync-job
+  annotations:
+    argocd.argoproj.io/hook: Sync  # Run this job during the sync process
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  template:
+    spec:
+      containers:
+        - name: deploy
+          image: my-deployment-image
+          command: ["sh", "-c", "deploy.sh"]
+      restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: post-sync-cleanup
+  annotations:
+    argocd.argoproj.io/hook: PostSync  # Run this job after the sync completes
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  template:
+    spec:
+      containers:
+        - name: cleanup
+          image: my-cleanup-image
+          command: ["sh", "-c", "cleanup.sh"]
+      restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sync-fail-recover
+  annotations:
+    argocd.argoproj.io/hook: SyncFail  # Run this job if the sync fails
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded

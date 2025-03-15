@@ -1,0 +1,47 @@
+# argocd-rbac-cm
+
+# Defines RBAC policies for ArgoCD 
+# This ConfigMap determines who can access what resources and perform which actions 
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm  # ConfigMap for RBAC policies in ArgoCD
+  namespace: argocd  # Namespace where ArgoCD is installed
+data:
+  # Define specific RBAC policies for different roles
+  policy.csv: |
+    # Admin Role: Full access to all applications, clusters, and projects
+    p, role:admin, applications, *, */*, allow  # Admins can do anything with applications
+    p, role:admin, clusters, *, */*, allow  # Admins can do anything with clusters
+    p, role:admin, projects, *, */*, allow  # Admins can do anything with projects
+
+    # Developer Role: Can sync applications and view applications
+    p, role:developer, applications, get, */*, allow  # Developers can view all applications
+    p, role:developer, applications, sync, */*, allow  # Developers can sync applications but not delete
+
+    # Viewer Role: Can only view applications, no changes allowed
+    p, role:viewer, applications, get, */*, allow  # Viewers can only view application details
+
+    # Mapping external groups to ArgoCD roles
+    g, admin-group, role:admin  # Users in the "admin-group" will assume the "admin" role
+    g, dev-group, role:developer  # Users in the "dev-group" will assume the "developer" role
+    g, viewer-group, role:viewer  # Users in the "viewer-group" will assume the "viewer" role
+
+  # Set a default role for users who do not belong to any of the mapped groups
+  policy.default: role:viewer  # Default to "viewer" role if no explicit role is assigned
+
+---
+
+# policy.csv: This field defines the RBAC policies for roles and how they are applied in ArgoCD. The syntax follows a CSV-like structure with the format:
+# p, role:<role-name>, resource, action, resource-name, allow|deny:
+# p: Defines a policy for a role.
+# role:<role-name>: Specifies the role to which the policy applies (e.g., admin, developer).
+# resource: Defines the resource type (e.g., applications, projects, clusters).
+# action: Specifies the allowed actions (e.g., get, sync, create, delete, * for all actions).
+# resource-name: Specifies the specific resource(s) the policy applies to (*/* for all resources).
+# allow|deny: Specifies whether the action is allowed or denied
+# g, github:org/admins, role:admin: This maps a GitHub organization group (admins) to the admin role.
+# g, github:org/developers, role:developer: This maps the developers group from a GitHub organization to the developer role.
+# g, user:john@example.com, role:viewer: This maps a specific user (john@example.com) to the viewer role.
+# policy.default: role:viewer: This defines the default role that is assigned to users who are not explicitly mapped to any role. In this case, users who are not in any mapped groups will be assigned the viewer role.

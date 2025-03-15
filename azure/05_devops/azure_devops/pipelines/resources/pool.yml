@@ -1,0 +1,17 @@
+# POOL defines where the pipeline jobs will run
+# This could be an ADO-hosted agent pool (Ubuntu, Windows, macOS) or self-hosted agent 
+
+# Key fields 
+# vmImage: specifies the virtual machine image (e.g. ubuntu-latest, windows-latest)
+# name: name of the custom/self-hosted agent pool
+# demands: specifies hardware or software capabilities required by the job
+
+###
+
+# using Azure-hosted agent pool
+pool:
+  vmImage: 'ubuntu-latest'
+
+# using self-hosted pool
+pool:
+  name: 'MyCustomPool'

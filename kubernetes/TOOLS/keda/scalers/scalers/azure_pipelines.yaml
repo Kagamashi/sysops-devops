@@ -1,0 +1,64 @@
+
+# azure-pipelines
+# scales based on the amount of pipelines runs pending in a given agent pool
+
+triggers:
+  - type: azure-pipelines
+    metadata:
+      # Optional: Name of the pool in Azure DevOps
+      poolName: "{agentPoolName}"
+      # Optional: Learn more in 'How to determine your pool ID'
+      poolID: "{agentPoolId}"
+      # Optional: Azure DevOps organization URL, can use TriggerAuthentication as well
+      organizationURLFromEnv: "AZP_URL"
+      # Optional: Azure DevOps Personal Access Token, can use TriggerAuthentication as well
+      personalAccessTokenFromEnv: "AZP_TOKEN"
+      # Optional: Target queue length
+      targetPipelinesQueueLength: "1" # Default 1
+      activationTargetPipelinesQueueLength: "5" # Default 0
+      # Optional: Parent template to read demands from
+      parent: "{parent ADO agent name}"
+      # Optional: Demands string to read demands from ScaledObject
+      demands: "{demands}"
+      # Optional: Demands of jobs must exactly match the capabilities the trigger defines
+      requireAllDemands: false 
+      # Optional: How many jobs to fetch for the pool in the API (default: 250)
+      jobsToFetch: "{jobsToFetch}"
+    authenticationRef:
+      name: pipeline-trigger-auth
+
+---
+
+# example:
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: pipeline-trigger-auth
+  namespace: default
+spec:
+  secretTargetRef:
+    - parameter: personalAccessToken
+      name: pipeline-auth
+      key: personalAccessToken
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: azure-pipelines-scaledobject
+  namespace: default
+spec:
+  scaleTargetRef:
+    name: azdevops-deployment
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  triggers:
+  - type: azure-pipelines
+    metadata:
+      poolID: "1"
+      organizationURLFromEnv: "AZP_URL"
+      parent: "example-keda-template"
+      demands: "maven,docker"      
+    authenticationRef:
+      name: pipeline-trigger-auth
+
+---

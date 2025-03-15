@@ -1,0 +1,26 @@
+
+# RoleBinding
+# Grants a Role to a user, group, or ServiceAccount within a namespace.
+# RoleBindings bind a Role to a subject (e.g., a user or ServiceAccount) and apply only within a specific namespace.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding                       # Defines this resource as a RoleBinding
+metadata:
+  name: pod-reader-binding              # Name of the RoleBinding
+  namespace: my-namespace               # Namespace where this RoleBinding applies
+subjects:                               # The users, groups, or ServiceAccounts that receive the Role's permissions
+- kind: ServiceAccount                  # The kind of subject (ServiceAccount in this case)
+  name: my-service-account              # Name of the ServiceAccount to which the Role is bound
+  namespace: my-namespace               # Namespace of the ServiceAccount
+roleRef:                                # The Role being assigned to the subjects
+  kind: Role                            # The type of role (Role or ClusterRole)
+  name: pod-reader-role                 # Name of the Role to be granted
+  apiGroup: rbac.authorization.k8s.io   # API group for RBAC resources
+
+# subjects: Defines the entities (users, groups, or ServiceAccounts) that will receive the permissions specified by the Role.
+# roleRef: Refers to the Role that is being assigned to the subjects. This section contains:
+#   kind: The type of role (Role or ClusterRole).
+#   name: The name of the Role being bound.
+#   apiGroup: The API group for the Role (always rbac.authorization.k8s.io for RBAC resources).
+
+---

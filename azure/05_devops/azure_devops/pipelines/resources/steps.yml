@@ -1,0 +1,35 @@
+# STEPS are individual units of work inside a job 
+# These can be scripts, tasks, checkout steps 
+# Step is an atomic action in the pipeline 
+
+# Key types of steps: 
+# script: executes shell or PowerShell script 
+# task: runs a predefined Azure DevOps task (e.g. Maven@3 etc) 
+# checkout: checks out code from the repository 
+# download: downloads artifacts from other stages or pipelines 
+
+###
+
+# example using a script step
+steps:
+  - script: echo "Building the code"
+    displayName: 'Build Step'
+
+# example using a task
+steps:
+  - task: Npm@1
+    inputs:
+      command: 'install'
+
+# example using checkout
+steps:
+  - checkout: self  # Checks out the current repository
+
+# example using download artifact
+steps:
+  - download: current  # Downloads artifacts from a previous stage
+
+# steps can have conditions (the same way as jobs)
+steps:
+  - script: echo "Running this step"
+    condition: succeeded()

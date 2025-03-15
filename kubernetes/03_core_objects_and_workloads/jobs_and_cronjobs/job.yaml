@@ -1,0 +1,65 @@
+# Job
+# Used to manage and run one-off tasks or batch processing that runs to completion; unlike long-running services managed by for example Deployments.
+# Jobs ensure that a specified number of Pods run succesfully to complete the task.
+
+# Key features:
+#   - Run-to-Completion: Job run until they complete their task and then terminate 
+#   - Pod Retry: Jobs automatically retry failed Pods 
+#   - Parallelism: Jobs can run multiple Pods in parallel 
+#   - Completion rules: certain number of successful completions or retries 
+
+# Use cases:
+#   - Data Processing: running ETL (Extract, Transform, Load) processes, batch data processes, analytics tasks 
+#   - Backup and Restore: one-time backup or restore tasks in databases/file systems 
+#   - Sending Emails/Reports: send bulk emails or generate reports 
+
+---
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: my-job
+  labels:
+    app: my-batch-job
+spec:
+  completions: 1      # Specifies how many successful Pods must complete before the Job is marked complete
+  parallelism: 1      # Specifies how many Pods should run in parallel
+  backoffLimit: 4     # Retries a Pod up to 4 times on failure
+  ttlSecondsAfterFinished: 3600  # The Job and its Pods will be cleaned up 1 hour after completion
+  template:           # Pod template for the Job
+    metadata:
+      labels:
+        app: my-batch-job
+    spec:
+      containers:
+        - name: my-container
+          image: busybox          # Using the busybox image for lightweight shell utilities
+          command: ["sh", "-c", "echo Hello, Kubernetes! && sleep 10"]  # Job task (print message, sleep 10s)
+      restartPolicy: Never        # Never || OnFailure
+
+---
+
+# apiVersion and kind: batch/v1 is the stable API version for Jobs, and Job defines the resource type.
+# metadata: The name and labels help identify and organize the Job within the Kubernetes cluster.
+# spec.completions: Defines the number of times the Job must be successfully completed. In this example, it’s set to 1, meaning the Job is complete when 1 Pod successfully finishes.
+# spec.parallelism: Controls how many Pods should run in parallel. By default, it is set to 1. If you increase the parallelism, multiple Pods will run simultaneously to complete the task faster.
+# spec.backoffLimit: Specifies the maximum number of retries before the Job is considered failed. In this example, the Job will retry up to 4 times if the Pods fail.
+# template: The Pod template defines the container that will be created to run the Job. This includes the container image, commands, and the restartPolicy for the Pods.
+#   restartPolicy: For Jobs, the restartPolicy is typically set to Never or OnFailure. Never ensures that Pods do not restart after they complete (whether successfully or unsuccessfully).
+
+--- 
+
+# JOB COMPLETION
+# By default when Job completes the Pods created by the Job remain in the cluster with status Completed for further inspections
+
+# Manual cleanup
+kubectl delete job my-job
+
+---
+# TTL (Time-To-Live): for automatic cleanup use ttlSecondsAfterFinished feature
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: my-job
+spec:
+  ttlSecondsAfterFinished: 3600  # The Job and its Pods will be cleaned up 1 hour after completion

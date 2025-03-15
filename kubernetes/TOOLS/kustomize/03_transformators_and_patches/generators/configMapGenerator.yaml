@@ -1,0 +1,19 @@
+
+# **ConfigMapGenerator:** Dynamically generates ConfigMaps with configuration data, and similarly, appends a hash for versioning.
+
+# Each generator accepts **behavior** parameter:
+# - create (default): creates new ConfigMap/Secret
+# - replace: replace existing ConfigMap/Secret from the base
+# - merge: add/opdate values in existing ConfigMap/Secret from the base
+
+configMapGenerator:
+  - name: app-config
+    literals:
+      - key1=value1
+      - key2=value2
+    files:
+      - /path/to/config.properties
+    envs:
+      - config.env
+
+---

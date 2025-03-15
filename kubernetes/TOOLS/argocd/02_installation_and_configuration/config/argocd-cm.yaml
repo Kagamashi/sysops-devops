@@ -1,0 +1,82 @@
+# argocd-cm
+
+# Primary ConfigMap for configuring global ArgoCD settings such as 
+# user interface customizations, syncing behavior, repository credentials, SSO Configurations
+
+apiVersion: v1
+kind: ConfigMap  # ConfigMap resource to store configuration data
+metadata:
+  name: argocd-cm  # Primary ConfigMap for global settings in ArgoCD
+  namespace: argocd  # Namespace where ArgoCD is installed
+data:
+  # General settings for ArgoCD
+  application.instanceLabelKey: app.kubernetes.io/instance  # Label key used to identify instances of applications
+
+  # UI customizations for the ArgoCD dashboard
+  ui.banner.text: "Welcome to ArgoCD"   # Custom banner text shown at the top of the UI
+  ui.banner.url: "https://argoproj.io"  # URL linked to the banner
+  ui.cssurl: "/custom.css"     # Path to custom CSS file to style the ArgoCD UI
+  ui.logo: "/custom-logo.png"  # Path to a custom logo to display in the UI
+
+  # Repository credentials
+  repositories: |  # Define repository credentials for accessing private repositories
+    - url: https://github.com/my-org/private-repo
+      username: <your-username>  # Optional: HTTP Basic Auth username
+      password: <your-password>  # Optional: HTTP Basic Auth password
+    - url: git@github.com:my-org/private-repo.git
+      sshPrivateKeySecret:
+        name: repo-ssh-secret  # Secret containing the SSH private key for repository access
+
+  # SSO (Single Sign-On) configuration
+  oidc.config: |  # Enable OAuth2/OpenID Connect for authentication
+    name: Google  # Provider name (shown in the login UI)
+    issuer: https://accounts.google.com  # OIDC provider URL
+    clientID: <your-client-id>  # Client ID from the OIDC provider
+    clientSecret: <your-client-secret>  # Client secret from the OIDC provider
+    requestedScopes: ["openid", "profile", "email"]  # Scopes requested from the provider
+
+  # Repository cache settings
+  repository.credentials-cache-size: "10Mi"  # Cache size for repository credentials (in memory)
+
+  # Resource tracking and behavior
+  resource.exclusions: |  # List of resources to exclude from being tracked by ArgoCD
+    - apiVersion: v1
+      kind: Event
+
+  # Performance settings
+  kustomize.buildOptions: "--load_restrictor=none"  # Options for Kustomize builds (used for generating manifests)
+
+  # Application sync policies
+  application.sync.default.policy: "auto"  # Default sync policy for new applications (auto/manual)
+  application.sync.default.self-heal: "true"  # Automatically reapply out-of-sync resources
+
+  # Helm chart repositories (for Helm-based applications)
+  helm.repositories: |  # Define Helm chart repositories for use in ArgoCD applications
+    - name: stable
+      url: https://charts.helm.sh/stable
+    - name: custom-repo
+      url: https://my-helm-repo.com
+
+  # Notifications and webhooks
+  notifications.slack: |  # Example Slack webhook configuration for notifications
+    url: https://hooks.slack.com/services/XXXXXX/XXXXXX/XXXXXX
+    username: argocd-bot
+    channel: "#alerts"
+
+---
+
+# application.instanceLabelKey: Sets the label key used to identify instances of applications. This is useful for tracking resources created by ArgoCD applications.
+# ui.banner.text: Displays a custom banner message at the top of the ArgoCD dashboard.
+# ui.banner.url: The URL the banner links to when clicked.
+# ui.cssurl and ui.logo: Customize the look and feel of the ArgoCD UI by specifying paths to custom CSS files and logos.
+# repositories: Specifies credentials for accessing Git repositories, which can be required for private repositories. You can use basic authentication (username/password) or SSH keys stored in Kubernetes secrets.
+# oidc.config: Configures OAuth2/OpenID Connect authentication for ArgoCD. This allows users to log in using external identity providers (e.g., Google, GitHub, LDAP).
+# issuer: The base URL of the OAuth2 provider.
+# clientID and clientSecret: OAuth2 client credentials to authenticate ArgoCD with the identity provider.
+# repository.credentials-cache-size: Configures the amount of memory used for caching repository credentials.
+# resource.exclusions: Defines which Kubernetes resources should not be tracked by ArgoCD. For example, resources like Events are often excluded to avoid unnecessary tracking.
+# kustomize.buildOptions: Allows specifying additional options for Kustomize builds, such as enabling or disabling specific Kustomize behavior.
+# application.sync.default.policy: Sets the default synchronization policy for applications (automatic or manual syncing).
+# application.sync.default.self-heal: Configures whether ArgoCD should automatically heal resources if they drift from the desired state.
+# helm.repositories: Defines Helm chart repositories that can be used when deploying Helm-based applications. This allows you to manage applications deployed using Helm charts.
+# notifications.slack: Defines a webhook for sending notifications to Slack channels. You can configure other webhook-based integrations here, such as Microsoft Teams or custom alerting systems.

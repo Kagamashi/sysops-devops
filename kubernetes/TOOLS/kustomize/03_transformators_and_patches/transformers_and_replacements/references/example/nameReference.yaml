@@ -1,0 +1,5 @@
+nameReference:
+  - kind: Gorilla
+    fieldSpecs:
+      - kind: AnimalPark
+        path: spec/gorillaRef/name

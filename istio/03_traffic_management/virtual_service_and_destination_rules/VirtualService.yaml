@@ -1,0 +1,105 @@
+
+# A VirtualService defines how requests are routed to a service, based on conditions like path, headers, or weight.
+
+# Key features:
+#   Routing: Virtual Services allow defining how traffic is routed to different service versions or subsets based on criteria like headers, URLs, or weight.
+#   Traffic Splitting: Supports splitting traffic between different versions of a service, enabling canary releases or A/B testing.
+#   Fault Injection: Introduce delays or failures to simulate network problems for testing the resilience of services.
+#   Retries and Timeouts: Configure how Istio should handle retries and timeouts for failed or slow requests.
+#   Mirroring: Duplicate and send traffic to a secondary service for testing or debugging.
+
+# In practice, VirtualServices can be used to implement a wide variety of traffic management strategies, including:
+#   Canary deployments: Split traffic between a stable and a new version of a service.
+#   Blue/green deployments: Route traffic entirely to one version while keeping another ready.
+#   A/B testing: Route traffic based on headers, allowing for testing different service behaviors.
+
+---
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: my-virtual-service
+  namespace: default       # Namespace where this VirtualService applies
+spec:
+  hosts:
+    - my-service            # Hostname of the service (FQDN or short name)
+  gateways:                 # Gateways to associate with this VirtualService (optional)
+    - my-gateway            # If not defined, the VirtualService will apply to mesh-internal traffic
+  http:                     # HTTP traffic routing rules
+    - name: primary-route   # Optional name for the route rule
+      match:                # Optional matching conditions for the route
+        - uri:              # Match based on URI
+            exact: /foo     # Exact path match (other options: "prefix" || "regex")
+          headers:          # Match based on request headers (optional)
+            my-header:
+              exact: value
+      route:                # Where to route the traffic
+        - destination:
+            host: my-service # Destination service
+            subset: v1       # Subset/version of the service to route traffic to
+          weight: 80         # Percentage of traffic (split traffic if using multiple routes - A/B testing)
+        - destination:
+            host: my-service
+            subset: v2
+          weight: 20
+      timeout: 5s            # Timeout for requests to the service
+      retries:               # Configure retries for failed requests
+        attempts: 3
+        perTryTimeout: 2s    # Timeout per retry
+        retryOn: gateway-error,connect-failure # Retry on specific conditions
+      fault:                 # Fault injection for testing failures
+        delay:               # Introduce artificial delays
+          percentage: 50     # Percent of traffic to delay
+          fixedDelay: 5s     # Fixed delay of 5 seconds
+        abort:               # Simulate service failures
+          percentage: 10     # Percent of traffic to fail
+          httpStatus: 500    # HTTP status code to return
+      mirror:                # Traffic mirroring for testing
+        host: mirror-service # Mirror traffic to this service
+        subset: v1           # Optional: Version of the service to mirror traffic to
+      corsPolicy:            # Configure Cross-Origin Resource Sharing (CORS)
+        allowOrigin:         # Allowed origins for CORS requests
+          - "*"
+        allowMethods:
+          - GET
+          - POST
+        allowHeaders:
+          - authorization
+        maxAge: "24h"        # Maximum caching time for CORS pre-flight requests
+        allowCredentials: true # Allow credentials for CORS requests
+
+  tcp:                       # TCP traffic routing rules (optional)
+    - match:
+        - port: 9000         # Match traffic based on the port
+      route:
+        - destination:
+            host: my-service
+            port:
+              number: 9000   # Route traffic to port 9000 of the destination
+
+  tls:                       # TLS traffic routing rules (optional)
+    - match:
+        - port: 443          # Match based on port for TLS traffic
+          sniHosts:
+            - "*.example.com" # Match traffic based on SNI (Server Name Indication)
+      route:
+        - destination:
+            host: secure-service
+            port:
+              number: 443    # Route traffic to port 443 of the destination
+
+---
+
+# hosts: Specifies the services to which this VirtualService applies. It can be an FQDN, a short name, or * (wildcard).
+# gateways: This field associates the VirtualService with specific Gateways (e.g., for external traffic). If omitted, it applies to internal mesh traffic.
+# http, tcp, and tls:
+# HTTP: Manages HTTP/HTTPS traffic. Define routes, retries, timeouts, and fault injection here.
+# TCP: Handles routing for TCP-based services.
+# TLS: Manages TLS traffic based on SNI and port configuration.
+# match: Specifies the matching conditions for traffic routing (e.g., URIs, headers, ports). Useful for routing requests based on specific criteria.
+# route: Defines the target service or subset/version where the traffic should be routed. Supports traffic splitting via weight.
+# retries: Configures how many retry attempts should be made for failed requests, and the timeout per retry.
+# fault: Used for fault injection, simulating failures such as delays or returning specific HTTP error codes for a percentage of requests.
+# mirror: Allows traffic mirroring, where a copy of the request is sent to another service, useful for testing new services without affecting production traffic.
+# corsPolicy: Configures Cross-Origin Resource Sharing (CORS) policies, allowing browsers to make cross-origin requests to your services.
+# tcp and tls rules: Handles routing for TCP or TLS traffic, using port-based or SNI-based routing.

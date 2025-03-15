@@ -1,0 +1,24 @@
+
+# Role
+# Grants access to specific resources (like Pods, Secrets, Services) within a single namespace.
+# Role contains a list of rules that define allowed actions (verbs) on specific API resources (resources).
+
+apiVersion: rbac.authorization.k8s.io/v1  # API version for RBAC resources
+kind: Role                                # Defines this resource as a Role
+metadata:
+  namespace: my-namespace                 # Namespace where this Role applies
+  name: pod-reader-role                   # Name of the Role
+rules:                                    # Rules define the permissions granted by this Role
+- apiGroups: [""]                         # "" refers to the core API group (Pods, Services, etc.)
+  resources: ["pods"]                     # Resources this Role applies to (in this case, Pods)
+  verbs: ["get", "list", "watch"]         # Verbs define allowed actions (here: read-only access to Pods)
+
+# apiVersion: Specifies the RBAC API version, typically rbac.authorization.k8s.io/v1.
+# kind: Specifies this resource as a Role.
+# metadata.namespace: The namespace where this Role applies.
+# rules: The set of permissions that the Role grants. It includes:
+#   apiGroups: Specifies the API group for the resources. "" refers to the core Kubernetes API (e.g., Pods, Services).
+#   resources: Defines the resources this Role controls (e.g., pods, secrets).
+#   verbs: Specifies the allowed actions (e.g., get, list, watch, create, delete).
+
+---

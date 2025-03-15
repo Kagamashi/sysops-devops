@@ -1,0 +1,38 @@
+# In this example, a set of variables is repeated across multiple pipelines. The variables are specified only once.
+
+# File: variables/build.yml
+variables:
+
+- name: vmImage
+  value: windows-latest
+
+- name: arch
+  value: x64
+
+- name: config
+  value: debug
+
+---
+
+# File: component-x-pipeline.yml
+variables:
+
+- template: variables/build.yml  # Template reference
+pool:
+  vmImage: ${{ variables.vmImage }}
+steps:
+
+- script: build x ${{ variables.arch }} ${{ variables.config }}
+
+
+---
+
+# File: component-y-pipeline.yml
+variables:
+
+- template: variables/build.yml  # Template reference
+pool:
+  vmImage: ${{ variables.vmImage }}
+steps:
+
+- script: build y ${{ variables.arch }} ${{ variables.config }}

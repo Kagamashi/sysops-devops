@@ -1,0 +1,37 @@
+# PARAMETERS are used to pass values into pipelines, enabling more dynamic and reusable pipelines.
+# Parameters allow to control the behavior of stages, jobs, steps.
+
+# - Parameters are statically evaluates at the start of the pipeline (compile-time)
+# - Variables are dynamically evaluated at runtime
+
+# Key fields:
+# - name: name of the parameter
+# - type: specified type of parameter (e.g. string, boolean, number, object, step etc.)
+# - default: default value for parameter
+# - values: (optional) predefined set of acceptable values
+
+# Usage:
+# - string parameters: useful for passing text values or predefined environments
+# - boolean parameters: ideal for turning on/off features in pipelines (e.g. run tests or not)
+
+###
+
+parameters:
+  - name: environment
+    type: string
+    default: 'dev'
+    values:
+      - dev
+      - staging
+      - production
+  - name: runTests
+    type: boolean
+    default: true
+
+jobs:
+  - job: Deploy
+    steps:
+      - script: |
+          echo "Deploying to $(environment) environment"
+      - script: echo "Running tests"
+        condition: and(succeeded(), eq(variables['runTests'], true))

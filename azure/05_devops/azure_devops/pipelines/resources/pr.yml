@@ -1,0 +1,33 @@
+# PULL REUQEST (PR) triggers allow to define pipeline behavior when a PR is opened/updated
+# This is useful for running CI jobs on PRs to verify code before merging into the main branch
+
+# PR Trigger fields:
+# pr: defines behavior for PR-based pipelines
+#   branches: specifies the branches that trigger the pipeline
+#   paths: filters PR-triggering by file path changes
+#   autoCancel: whether running builds are automatically cancelled when new commits are pushed to the PR
+
+###
+
+pr:
+  branches:
+    include:
+      - main
+    exclude:
+      - 'feature/*'
+  paths:
+    include:
+      - src/*
+    exclude:
+      - docs/*
+
+trigger:
+  branches:
+    include:
+      - '*'
+
+jobs:
+  - job: Build
+    condition: eq(variables['Build.Reason'], 'PullRequest')
+    steps:
+      - script: echo "Building for Pull Request"

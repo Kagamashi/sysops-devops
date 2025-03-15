@@ -1,0 +1,6 @@
+
+# Transformers add changes across every Kubernetes resource that is part of Kustomize configuration.
+
+# NameSuffix
+# Useful for versioning or naming conventions that needs a suffix
+nameSuffix: -suffix

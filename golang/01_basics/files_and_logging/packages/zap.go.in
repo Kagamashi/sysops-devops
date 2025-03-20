@@ -1,0 +1,28 @@
+// package main
+import (
+    "go.uber.org/zap"
+)
+
+/*
+Zap is optimized for speed and is often used in high-performance Go applications
+- faster than logrus
+- builtin support for fields
+
+Output:
+{"level":"info","ts":1707654300.123,"msg":"User logged in","user_id":123,"event":"login","ip":"192.168.1.1"}
+*/
+
+func main() {
+    logger, _ := zap.NewProduction()
+    defer logger.Sync() // Flush logs
+
+    logger.Info("User logged in",
+        zap.Int("user_id", 123),
+        zap.String("event", "login"),
+        zap.String("ip", "192.168.1.1"),
+    )
+
+    logger.Warn("Order processing delayed",
+        zap.Int("order_id", 456),
+    )
+}

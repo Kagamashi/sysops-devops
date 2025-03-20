@@ -1,0 +1,53 @@
+// package main
+
+import (
+    "fmt"
+    "os"
+
+		// go get -u github.com/spf13/cobra@latest
+		// go get -u github.com/spf13/cobra/cobra@latest
+    "github.com/spf13/cobra"
+)
+
+/* [better choice]
+initialize new CLI project
+	cobra init --module github.com/yourname/mycli
+	cd mycli
+this creates cmd/ directory with root.go filename
+
+add new subcommand:
+	cobra add greet
+this generates greet.go inside cmd/
+
+usage of below example:
+	go run main.go greet --name Alice
+*/
+
+var rootCmd = &cobra.Command{
+    Use:   "mycli",
+    Short: "MyCLI is a simple example of Cobra CLI",
+    Run: func(cmd *cobra.Command, args []string) {
+        fmt.Println("Welcome to MyCLI!")
+    },
+}
+
+var greetCmd = &cobra.Command{
+    Use:   "greet",
+    Short: "Greets the user",
+    Run: func(cmd *cobra.Command, args []string) {
+        name, _ := cmd.Flags().GetString("name")
+        fmt.Printf("Hello, %s!\n", name)
+    },
+}
+
+func init() {
+    rootCmd.AddCommand(greetCmd)
+    greetCmd.Flags().StringP("name", "n", "User", "Your name")
+}
+
+func main() {
+    if err := rootCmd.Execute(); err != nil {
+        fmt.Println(err)
+        os.Exit(1)
+    }
+}

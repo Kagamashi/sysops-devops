@@ -1,0 +1,49 @@
+// package main
+
+import (
+	"context"
+
+	// go get github.com/hashicorp/terraform-plugin-sdk/v2
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+)
+
+/*
+initialize a Go module:
+	mkdir terraform-provider-example && cd terraform-provider-example
+	go mod init example.com/terraform-provider-example
+
+compile the provider:
+	go build -o terraform-provider-example
+
+use in Terraform configuration:
+	terraform {
+		required_providers {
+			example = {
+				source = "example.com/example"
+			}
+		}
+	}
+
+	provider "example" {
+		example_api_key = "my-secret-key"
+	}
+
+	resource "example_resource" "test" {
+		name = "my-resource"
+	}
+*/
+
+// define a simple provider (provider.go)
+func Provider() *schema.Provider {
+	return &schema.Provider{
+		Schema: map[string]*schema.Schema{
+			"example_api_key": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+		},
+		ResourcesMap: map[string]*schema.Resource{
+			"example_resource": resourceExample(),
+		},
+	}
+}

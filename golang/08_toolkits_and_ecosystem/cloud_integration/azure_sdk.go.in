@@ -1,0 +1,56 @@
+// package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	// go get github.com/Azure/azure-sdk-for-go
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
+)
+
+/*
+Go has official SDKs for interacting with Azure, allowing developers to manage resources programmatically
+- uses azidentity for authentication
+
+azidentity.NewDefaultAzureCredential()		uses default Azure credentials (eg env vars, CLI login)
+armresources.NewResourceGroupsClient()		initializes client for managing Azure resource groups
+client.List(ctx, nil)			lists all resource groups
+
+*/
+
+func main() {
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	client, err := armresources.NewResourceGroupsClient("<SUBSCRIPTION_ID>", cred, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ctx := context.Background()
+	resp, err := client.List(ctx, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, rg := range resp.ResourceGroupListResult.Value {
+		fmt.Println(*rg.Name)
+	}
+
+	// creating a ResourceGroup
+	ctx := context.Background()
+	resourceGroup := armresources.ResourceGroup{
+		Location: to.Ptr("eastus"),
+	}
+
+	resp, err := client.CreateOrUpdate(ctx, "myResourceGroup", resourceGroup, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Resource Group Created:", *resp.Name)
+}

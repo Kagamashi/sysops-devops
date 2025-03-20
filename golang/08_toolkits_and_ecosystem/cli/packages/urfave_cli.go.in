@@ -1,0 +1,46 @@
+// package main
+
+import (
+    "fmt"
+    "os"
+
+		// go get -u github.com/urfave/cli/v2
+    "github.com/urfave/cli/v2"
+)
+
+/*
+urfave/cli is CLI library that focuses on simplicity and minimal dependencies
+
+usage:
+	go run main.go greet --name Alice
+*/
+
+func main() {
+    app := &cli.App{
+        Name:  "mycli",
+        Usage: "A simple CLI tool",
+        Commands: []*cli.Command{
+            {
+                Name:  "greet",
+                Usage: "Greets the user",
+                Flags: []cli.Flag{
+                    &cli.StringFlag{
+                        Name:    "name",
+                        Aliases: []string{"n"},
+                        Value:   "User",
+                        Usage:   "Your name",
+                    },
+                },
+                Action: func(c *cli.Context) error {
+                    fmt.Printf("Hello, %s!\n", c.String("name"))
+                    return nil
+                },
+            },
+        },
+    }
+
+    if err := app.Run(os.Args); err != nil {
+        fmt.Println(err)
+        os.Exit(1)
+    }
+}

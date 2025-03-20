@@ -1,0 +1,48 @@
+package main
+import (
+	"log"
+	"net/http"
+	_ "net/http/pprof" // Import for profiling
+)
+
+/*
+pprof tool captures CPU and memory usage
+
+'go run main.go'
+cpu usage for 30s: 'go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30'
+memory usage: 'go tool pprof http://localhost:6060/debug/pprof/heap'
+
+after running pprof:
+'top'
+
+example output:
+Showing top 10 nodes out of 50
+    flat  flat%   sum%        function
+    100ms   50%    50%         main.Sum
+    50ms    25%    75%         runtime.mallocgc
+    30ms    15%    90%         main.AllocateSlice
+
+	- 50% of time spent in Sum → Potential optimization needed.
+	- 25% in mallocgc → High memory allocation cost.
+*/
+
+func main() {
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil)) // Start pprof server
+	}()
+	// Simulated workload
+	for i := 0; i < 1000000; i++ {
+		_ = Sum(1000)
+	}
+}
+
+
+/*
+flame graphs help spot bottlenecks visually
+
+save profile data: 'go tool pprof -svg cpu.prof > cpu.svg'
+open cpu.svg in browser
+
+Tall blocks → More CPU usage (optimize these).
+Wide blocks → Frequently called functions.
+*/
